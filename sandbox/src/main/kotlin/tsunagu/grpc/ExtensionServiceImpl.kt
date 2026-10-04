@@ -296,7 +296,7 @@ class ExtensionServiceImpl(
             responseObserver.onCompleted()
         } catch (e: UnsupportedOperationException) {
 
-            logger.info { "extension ${request.extensionId} has no popular listing, returning empty page" }
+            logger.debug { "extension ${request.extensionId} has no popular listing, returning empty page" }
             responseObserver.onNext(Sandbox.SearchResponse.newBuilder().setHasNextPage(false).build())
             responseObserver.onCompleted()
         } catch (e: Throwable) {

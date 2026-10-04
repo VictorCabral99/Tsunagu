@@ -54,13 +54,21 @@ func (m *Manager) ApplyConfig(mode, externalURL string) {
 	if mode != ModeExternal && mode != ModeManaged {
 		mode = ModeDisabled
 	}
+	unsupported := mode == ModeManaged && !SupportedOnPlatform()
+	if unsupported {
+		mode = ModeDisabled
+	}
 	m.mu.Lock()
 	m.mode = mode
 	m.externalURL = strings.TrimRight(strings.TrimSpace(externalURL), "/")
 	m.mu.Unlock()
 	if mode != ModeManaged {
 		m.stop()
-		m.setErr("")
+		if unsupported {
+			m.setErr("managed FlareSolverr is not available on this platform; use external")
+		} else {
+			m.setErr("")
+		}
 		return
 	}
 	m.setErr("")
@@ -235,6 +243,7 @@ func (m *Manager) startLocked() error {
 	a, _ := platformAsset()
 	bin := filepath.Join(m.dir, a.binRel)
 	cmd := exec.Command(bin)
+	cmd.SysProcAttr = childSysProcAttr()
 	cmd.Dir = filepath.Dir(bin)
 	cmd.Env = append(os.Environ(),
 		"HOST=127.0.0.1",
@@ -300,7 +309,9 @@ func (m *Manager) stop() {
 	m.cmd = nil
 	m.mu.Unlock()
 	if c != nil && c.Process != nil {
-		_ = c.Process.Kill()
+		if err := killTree(c); err != nil {
+			_ = c.Process.Kill()
+		}
 		_ = c.Wait()
 	}
 }

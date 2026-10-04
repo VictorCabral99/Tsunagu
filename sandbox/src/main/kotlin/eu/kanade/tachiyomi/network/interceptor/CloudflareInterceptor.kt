@@ -16,6 +16,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 class CloudflareInterceptor(
@@ -25,6 +26,8 @@ class CloudflareInterceptor(
     private val json = Json { ignoreUnknownKeys = true }
 
     private val solverUrl = System.getenv("SANDBOX_FLARESOLVERR_URL")?.trim()?.trimEnd('/').orEmpty()
+    private val solvedUserAgents = ConcurrentHashMap<String, SolvedAgent>()
+    private val hostLocks = ConcurrentHashMap<String, Any>()
 
     private val solverClient by lazy {
         OkHttpClient.Builder()
@@ -35,29 +38,42 @@ class CloudflareInterceptor(
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request()
+        val started = System.nanoTime()
+        val original = chain.request()
+        val host = original.url.host
+        val request = solvedUserAgents[host]
+            ?.let { original.newBuilder().header("User-Agent", it.userAgent).build() }
+            ?: original
         val response = chain.proceed(request)
 
         if (response.code !in ERROR_CODES || response.header("Server") !in SERVER_CHECK) {
             return response
         }
 
-        val host = request.url.host
         if (solverUrl.isEmpty()) {
             response.close()
             throw IOException("Cloudflare challenge on $host; set flaresolverr_url in settings to bypass it")
         }
 
         response.close()
-        logger.info { "Cloudflare challenge on $host; solving via FlareSolverr" }
-
-        val solved = solve(request.url.toString())
-            ?: throw IOException("FlareSolverr could not solve the Cloudflare challenge on $host")
-
-        cookieStore.addAll(request.url, solved.cookies)
-        val retried = request.newBuilder().header("User-Agent", solved.userAgent).build()
-        return chain.proceed(retried)
+        // Concurrent requests to a challenged host wait for one solve instead of each starting their own.
+        val agent = synchronized(hostLocks.computeIfAbsent(host) { Any() }) {
+            val known = solvedUserAgents[host]
+            if (known != null && known.at >= started) {
+                known
+            } else {
+                logger.info { "Cloudflare challenge on $host; solving via FlareSolverr" }
+                val solved = solve(request.url.toString())
+                    ?: throw IOException("FlareSolverr could not solve the Cloudflare challenge on $host")
+                cookieStore.addAll(request.url, solved.cookies)
+                SolvedAgent(solved.userAgent, System.nanoTime()).also { solvedUserAgents[host] = it }
+            }
+        }
+        // cf_clearance is bound to the solver's User-Agent, so the retry must send it.
+        return chain.proceed(request.newBuilder().header("User-Agent", agent.userAgent).build())
     }
+
+    private data class SolvedAgent(val userAgent: String, val at: Long)
 
     private data class Solved(val cookies: List<Cookie>, val userAgent: String)
 
