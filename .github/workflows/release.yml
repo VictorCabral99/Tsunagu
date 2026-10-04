@@ -25,7 +25,7 @@ jobs:
           mkdir -p out
           nix develop -c bash -c "
             cd backend
-            for t in windows/amd64 darwin/amd64 darwin/arm64 linux/amd64; do
+            for t in windows/amd64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
               os=\${t%/*}; arch=\${t#*/}
               ext=''; [ \$os = windows ] && ext='.exe'
               GOOS=\$os GOARCH=\$arch CGO_ENABLED=0 go build \
@@ -55,6 +55,7 @@ jobs:
       matrix:
         include:
           - { os: ubuntu-latest,    name: linux-amd64  }
+          - { os: ubuntu-24.04-arm, name: linux-arm64  }
           - { os: macos-15-intel,   name: darwin-amd64 }
           - { os: macos-14,         name: darwin-arm64 }
           - { os: windows-latest,   name: windows-amd64 }
@@ -157,6 +158,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { name: runtime-linux-amd64, path: dl }
       - uses: actions/download-artifact@v4
+        with: { name: runtime-linux-arm64, path: dl }
+      - uses: actions/download-artifact@v4
         with: { name: runtime-darwin-amd64, path: dl }
       - uses: actions/download-artifact@v4
         with: { name: runtime-darwin-arm64, path: dl }
@@ -169,7 +172,7 @@ jobs:
           cp dl/tsunagu-* rel/
           cp dl/sandbox.jar rel/
           cp dl/runtime-* rel/
-          for t in linux-amd64 darwin-amd64 darwin-arm64 windows-amd64; do
+          for t in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64; do
             case "$t" in
               windows-amd64) bin=tsunagu-windows-amd64.exe; ext=.exe; arc="rel/runtime-$t.zip" ;;
               *)             bin=tsunagu-$t;                 ext="";   arc="rel/runtime-$t.tar.gz" ;;
@@ -203,19 +206,22 @@ jobs:
             echo "    \"windows-amd64\": \"tsunagu-windows-amd64.exe\","
             echo "    \"darwin-amd64\": \"tsunagu-darwin-amd64\","
             echo "    \"darwin-arm64\": \"tsunagu-darwin-arm64\","
-            echo "    \"linux-amd64\": \"tsunagu-linux-amd64\""
+            echo "    \"linux-amd64\": \"tsunagu-linux-amd64\","
+            echo "    \"linux-arm64\": \"tsunagu-linux-arm64\""
             echo "  },"
             echo "  \"runtimes\": {"
             echo "    \"windows-amd64\": \"runtime-windows-amd64.zip\","
             echo "    \"darwin-amd64\": \"runtime-darwin-amd64.tar.gz\","
             echo "    \"darwin-arm64\": \"runtime-darwin-arm64.tar.gz\","
-            echo "    \"linux-amd64\": \"runtime-linux-amd64.tar.gz\""
+            echo "    \"linux-amd64\": \"runtime-linux-amd64.tar.gz\","
+            echo "    \"linux-arm64\": \"runtime-linux-arm64.tar.gz\""
             echo "  },"
             echo "  \"bundles\": {"
             echo "    \"windows-amd64\": \"tsunagu-windows-amd64.zip\","
             echo "    \"darwin-amd64\": \"tsunagu-darwin-amd64.tar.gz\","
             echo "    \"darwin-arm64\": \"tsunagu-darwin-arm64.tar.gz\","
-            echo "    \"linux-amd64\": \"tsunagu-linux-amd64.tar.gz\""
+            echo "    \"linux-amd64\": \"tsunagu-linux-amd64.tar.gz\","
+            echo "    \"linux-arm64\": \"tsunagu-linux-arm64.tar.gz\""
             echo "  }"
             echo "}"
           } > manifest.json
