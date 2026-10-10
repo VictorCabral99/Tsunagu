@@ -34,7 +34,22 @@ object NovelJsBridge {
             if (mod === null || mod === undefined) {
                 throw new Error("novel plugin requires unsupported module: " + name);
             }
-            return mod;
+            return name === "@libs/aes" ? __wrapAes(mod) : mod;
+        }
+        // Host ciphers return Java byte[]; plugins expect Uint8Array like noble-ciphers.
+        function __wrapAes(m) {
+            function u8(b) { return Uint8Array.from(b, function (x) { return x & 255; }); }
+            var out = {};
+            ["gcm", "cbc", "ctr", "ecb"].forEach(function (k) {
+                out[k] = function (a, b, c) {
+                    var cipher = m[k](a, b, c);
+                    return {
+                        encrypt: function (d) { return u8(cipher.encrypt(d)); },
+                        decrypt: function (d) { return u8(cipher.decrypt(d)); },
+                    };
+                };
+            });
+            return out;
         }
     """
 
@@ -267,6 +282,32 @@ object NovelJsBridge {
             if (typeof g.Headers === 'undefined') g.Headers = Headers;
             if (typeof g.TextEncoder === 'undefined') g.TextEncoder = TextEncoder;
             if (typeof g.TextDecoder === 'undefined') g.TextDecoder = TextDecoder;
+
+            var B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+            if (typeof g.atob === 'undefined') g.atob = function (s) {
+                s = String(s).replace(/[\s=]/g, '').replace(/-/g, '+').replace(/_/g, '/');
+                var out = '', bits = 0, acc = 0;
+                for (var i = 0; i < s.length; i++) {
+                    var v = B64.indexOf(s.charAt(i));
+                    if (v < 0) throw new Error('atob: invalid base64');
+                    acc = (acc << 6) | v; bits += 6;
+                    if (bits >= 8) { bits -= 8; out += String.fromCharCode((acc >> bits) & 255); }
+                }
+                return out;
+            };
+            if (typeof g.btoa === 'undefined') g.btoa = function (s) {
+                s = String(s);
+                var out = '';
+                for (var i = 0; i < s.length; i += 3) {
+                    var a = s.charCodeAt(i), b = s.charCodeAt(i + 1), c = s.charCodeAt(i + 2);
+                    if (a > 255 || b > 255 || c > 255) throw new Error('btoa: character out of range');
+                    var n = (a << 16) | ((b || 0) << 8) | (c || 0);
+                    out += B64.charAt(n >> 18) + B64.charAt((n >> 12) & 63) +
+                        (i + 1 < s.length ? B64.charAt((n >> 6) & 63) : '=') +
+                        (i + 2 < s.length ? B64.charAt(n & 63) : '=');
+                }
+                return out;
+            };
         })(globalThis);
     """
 
@@ -289,6 +330,7 @@ object NovelJsBridge {
             "@libs/filterInputs" -> filterInputsModule()
             "@libs/storage" -> storageModule(storageNamespace)
             "dayjs" -> dayjsModule()
+            "@libs/aes" -> aesModule()
             else -> null
         }
     }
@@ -539,6 +581,47 @@ object NovelJsBridge {
             args[0].asString().let { it.startsWith("http://") || it.startsWith("https://") }
         },
     ))
+
+    // @libs/aes mirrors @noble/ciphers/aes: gcm(key, nonce, aad?), cbc(key, iv, opts?),
+    // ctr(key, iv), ecb(key, opts?), each returning { encrypt, decrypt }. GCM output
+    // carries the 16-byte tag appended to the ciphertext, as noble's does.
+    private fun aesModule(): ProxyObject {
+        fun noPadding(opts: Value?) = opts != null && !opts.isNull && opts.hasMembers() && truthy(opts.getMember("disablePadding"))
+        fun cipher(transform: String, key: Value, spec: java.security.spec.AlgorithmParameterSpec?, aad: Value? = null): ProxyObject {
+            val keySpec = javax.crypto.spec.SecretKeySpec(bytesOf(key), "AES")
+            fun run(mode: Int, data: Value): ByteArray {
+                val c = javax.crypto.Cipher.getInstance(transform)
+                if (spec == null) c.init(mode, keySpec) else c.init(mode, keySpec, spec)
+                if (aad != null && !aad.isNull) c.updateAAD(bytesOf(aad))
+                return c.doFinal(bytesOf(data))
+            }
+            return ProxyObject.fromMap(mapOf(
+                "encrypt" to ProxyExecutable { a -> run(javax.crypto.Cipher.ENCRYPT_MODE, a[0]) },
+                "decrypt" to ProxyExecutable { a -> run(javax.crypto.Cipher.DECRYPT_MODE, a[0]) },
+            ))
+        }
+        return ProxyObject.fromMap(mapOf(
+            "gcm" to ProxyExecutable { a ->
+                cipher("AES/GCM/NoPadding", a[0], javax.crypto.spec.GCMParameterSpec(128, bytesOf(a[1])), a.getOrNull(2))
+            },
+            "cbc" to ProxyExecutable { a ->
+                val padding = if (noPadding(a.getOrNull(2))) "NoPadding" else "PKCS5Padding"
+                cipher("AES/CBC/$padding", a[0], javax.crypto.spec.IvParameterSpec(bytesOf(a[1])))
+            },
+            "ctr" to ProxyExecutable { a -> cipher("AES/CTR/NoPadding", a[0], javax.crypto.spec.IvParameterSpec(bytesOf(a[1]))) },
+            "ecb" to ProxyExecutable { a ->
+                val padding = if (noPadding(a.getOrNull(1))) "NoPadding" else "PKCS5Padding"
+                cipher("AES/ECB/$padding", a[0], null)
+            },
+        ))
+    }
+
+    private fun bytesOf(v: Value): ByteArray = when {
+        v.isString -> v.asString().toByteArray(Charsets.UTF_8)
+        v.hasBufferElements() -> ByteArray(v.bufferSize.toInt()).also { v.readBuffer(0, it, 0, it.size) }
+        v.hasArrayElements() -> ByteArray(v.arraySize.toInt()) { v.getArrayElement(it.toLong()).asInt().toByte() }
+        else -> throw IllegalArgumentException("expected a Uint8Array, got $v")
+    }
 
     private fun defaultCoverModule(): ProxyObject = ProxyObject.fromMap(mapOf("defaultCover" to ""))
 
