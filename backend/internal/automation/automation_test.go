@@ -274,3 +274,194 @@ func TestFilterTargets(t *testing.T) {
 		t.Fatalf("scheduled = %v, want [1]", got)
 	}
 }
+
+// stubUpdates replaces the real sync with a recorder and returns the IDs of
+// every update started.
+func (f *fixture) stubUpdates() *[][]int64 {
+	var started [][]int64
+	f.m.startUpdate = func(ids []int64) bool {
+		started = append(started, slices.Clone(ids))
+		return true
+	}
+	return &started
+}
+
+func TestAppOpenUpdate(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+	f.exec(`INSERT INTO media (id, external_id, content_type, title, added_at) VALUES
+		(2, 'paused', 'manga', 'Paused', CURRENT_TIMESTAMP)`)
+	f.exec(`INSERT INTO media_automation (media_id, pause_updates) VALUES (2, 1)`)
+	started := f.stubUpdates()
+
+	ok, err := f.m.StartLibraryUpdate(ctx, nil, TriggerAppOpen)
+	if err != nil || !ok {
+		t.Fatalf("app open on a fresh server should update: ok=%v err=%v", ok, err)
+	}
+	if len(*started) != 1 || !slices.Equal((*started)[0], []int64{1}) {
+		t.Fatalf("updated %v, want [[1]] (paused series skipped)", *started)
+	}
+
+	// Finishing the update starts the cooldown, so a quick reopen doesn't refetch everything.
+	f.m.onUpdateFinished(ctx)
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerAppOpen); ok {
+		t.Fatal("reopening within the cooldown started another update")
+	}
+	// A manual update ignores the cooldown.
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerManual); !ok {
+		t.Fatal("manual update refused during the app-open cooldown")
+	}
+
+	f.exec(`UPDATE automation_settings SET last_library_update_at = ?`, time.Now().UTC().Add(-time.Hour))
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerAppOpen); !ok {
+		t.Fatal("app open after the cooldown didn't update")
+	}
+
+	f.exec(`UPDATE automation_settings SET update_on_open = 0, last_library_update_at = NULL`)
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerAppOpen); ok {
+		t.Fatal("update on open is off but an update started")
+	}
+	if len(*started) != 3 {
+		t.Fatalf("started %d updates, want 3", len(*started))
+	}
+}
+
+func TestAppOpenUpdateNothingDue(t *testing.T) {
+	f := newFixture(t)
+	f.exec(`INSERT INTO media_automation (media_id, refresh_interval) VALUES (1, 'manual')`)
+	started := f.stubUpdates()
+	if ok, _ := f.m.StartLibraryUpdate(context.Background(), nil, TriggerAppOpen); ok || len(*started) != 0 {
+		t.Fatalf("only a manual-refresh series: ok=%v started=%v", ok, *started)
+	}
+}
+
+func TestScheduledUpdate(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+	started := f.stubUpdates()
+
+	// Never checked → due.
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerScheduled); !ok {
+		t.Fatal("never-checked series wasn't updated on schedule")
+	}
+	f.m.onSeriesChecked(ctx, 1, nil)
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerScheduled); ok {
+		t.Fatal("series checked just now was updated again on schedule")
+	}
+
+	f.exec(`UPDATE media SET chapters_checked_at = ?`, time.Now().UTC().Add(-25*time.Hour))
+	f.exec(`UPDATE automation_settings SET enabled = 0`)
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerScheduled); ok {
+		t.Fatal("scheduled update ran with automation disabled")
+	}
+	f.exec(`UPDATE automation_settings SET enabled = 1`)
+	if ok, _ := f.m.StartLibraryUpdate(ctx, nil, TriggerScheduled); !ok {
+		t.Fatal("daily series checked 25h ago wasn't updated")
+	}
+	if len(*started) != 2 {
+		t.Fatalf("started %d updates, want 2", len(*started))
+	}
+}
+
+func TestManualFolderUpdateIgnoresPause(t *testing.T) {
+	f := newFixture(t)
+	f.exec(`INSERT INTO folders (id, name, kind) VALUES (90, 'Shelf', 'custom')`)
+	f.exec(`INSERT INTO media_folders (media_id, folder_id) VALUES (1, 90)`)
+	f.exec(`INSERT INTO media_automation (media_id, pause_updates) VALUES (1, 1)`)
+	started := f.stubUpdates()
+
+	if ok, _ := f.m.StartLibraryUpdate(context.Background(), nil, TriggerManual); ok {
+		t.Fatal("library-wide manual update included a paused series")
+	}
+	folder := int64(90)
+	if ok, _ := f.m.StartLibraryUpdate(context.Background(), &folder, TriggerManual); !ok {
+		t.Fatal("refreshing a folder explicitly should update its paused series too")
+	}
+	if !slices.Equal((*started)[0], []int64{1}) {
+		t.Fatalf("updated %v, want [1]", *started)
+	}
+}
+
+func TestSeriesOverrideAndEnforceGlobal(t *testing.T) {
+	ctx := context.Background()
+
+	// The series opts out of the global delete-after-read.
+	f := newFixture(t, 1)
+	f.exec(`UPDATE automation_settings SET delete_on_read = 1`)
+	f.exec(`INSERT INTO media_automation (media_id, delete_on_read) VALUES (1, 0)`)
+	f.m.ChaptersRead(ctx, 1, []int64{1})
+	if !f.fileExists(1) {
+		t.Fatal("series override should keep the download")
+	}
+
+	// Enforcing global rules ignores that opt-out.
+	f.exec(`UPDATE automation_settings SET enforce_global = 1`)
+	f.m.ChaptersRead(ctx, 1, []int64{1})
+	if f.fileExists(1) {
+		t.Fatal("enforce global should delete despite the series override")
+	}
+
+	// A series can turn on a rule that's off globally.
+	g := newFixture(t, 1)
+	g.exec(`INSERT INTO media_automation (media_id, delete_on_read) VALUES (1, 1)`)
+	g.m.ChaptersRead(ctx, 1, []int64{1})
+	if g.fileExists(1) {
+		t.Fatal("series override should delete after read")
+	}
+}
+
+func TestDownloadAheadSkipsReadAndQueued(t *testing.T) {
+	f := newFixture(t)
+	f.exec(`UPDATE automation_settings SET download_ahead = 3`)
+	f.markRead(1, 3)
+	f.exec(`INSERT INTO downloads (chapter_id, status, progress) VALUES (4, 'queued', 0)`)
+
+	f.m.ChaptersRead(context.Background(), 1, []int64{1})
+
+	// Next three after 1 are 2, 3 (read) and 4 (already queued).
+	if _, pending := f.state(); !slices.Equal(pending, []int64{2, 4}) {
+		t.Fatalf("pending = %v, want [2 4]", pending)
+	}
+	var n int
+	if err := f.conn.QueryRow(`SELECT COUNT(*) FROM downloads WHERE chapter_id = 4`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("chapter 4 has %d download rows, want 1 (err=%v)", n, err)
+	}
+}
+
+func TestAutoDownloadSkipsReadAndDownloaded(t *testing.T) {
+	f := newFixture(t, 4)
+	f.exec(`UPDATE automation_settings SET auto_download = 1`)
+	f.markRead(3)
+	f.m.onSeriesChecked(context.Background(), 1, []int64{3, 4, 5})
+	if _, pending := f.state(); !slices.Equal(pending, []int64{5}) {
+		t.Fatalf("queued %v, want [5]", pending)
+	}
+}
+
+func TestAutoDownloadOffWhenAutomationDisabled(t *testing.T) {
+	f := newFixture(t)
+	f.exec(`UPDATE automation_settings SET auto_download = 1, enabled = 0`)
+	f.m.onSeriesChecked(context.Background(), 1, []int64{5})
+	if _, pending := f.state(); len(pending) != 0 {
+		t.Fatalf("queued %v with automation disabled", pending)
+	}
+}
+
+// The fixture series has no extension, like a series whose extension was
+// uninstalled; its downloads must still be deletable.
+func TestDeleteDownloadsOfOrphanedSeries(t *testing.T) {
+	f := newFixture(t, 1, 2)
+	var ext sql.NullInt64
+	if err := f.conn.QueryRow(`SELECT extension_id FROM media WHERE id = 1`).Scan(&ext); err != nil || ext.Valid {
+		t.Fatalf("fixture series should have no extension: %v %v", ext, err)
+	}
+	if err := f.m.dm.DeleteChapters(context.Background(), []int64{1, 2}); err != nil {
+		t.Fatal(err)
+	}
+	if f.fileExists(1) || f.fileExists(2) {
+		t.Fatal("files left on disk")
+	}
+	if downloaded, _ := f.state(); len(downloaded) != 0 {
+		t.Fatalf("still downloaded: %v", downloaded)
+	}
+}

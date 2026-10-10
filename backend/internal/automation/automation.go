@@ -54,6 +54,9 @@ type Manager struct {
 	sy *syncpkg.Syncer
 	sc *sandbox.SupervisedClient
 
+	// startUpdate syncs the given series in the background; swapped out in tests.
+	startUpdate func(ids []int64) bool
+
 	// Serializes rule application so concurrent read marks for one series
 	// don't both enqueue or delete the same chapters.
 	mu sync.Mutex
@@ -61,6 +64,7 @@ type Manager struct {
 
 func New(q *sqlcgen.Queries, dm *download.Manager, sy *syncpkg.Syncer, sc *sandbox.SupervisedClient) *Manager {
 	m := &Manager{q: q, dm: dm, sy: sy, sc: sc}
+	m.startUpdate = func(ids []int64) bool { return sy.StartLibraryUpdate(sc, ids) }
 	sy.SetLibraryUpdateHooks(m.onSeriesChecked, m.onUpdateFinished)
 	return m
 }
@@ -393,7 +397,7 @@ func (m *Manager) StartLibraryUpdate(ctx context.Context, folderID *int64, trigg
 	if len(ids) == 0 {
 		return false, nil
 	}
-	return m.sy.StartLibraryUpdate(m.sc, ids), nil
+	return m.startUpdate(ids), nil
 }
 
 func (m *Manager) filterTargets(ctx context.Context, s sqlcgen.AutomationSetting, ids []int64, trigger Trigger, now time.Time) ([]int64, error) {

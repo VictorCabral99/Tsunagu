@@ -156,13 +156,8 @@ func (s *Syncer) runLibraryUpdate(sc *sandbox.SupervisedClient, ids []int64) {
 		s.updateMu.Unlock()
 
 		before, _ := s.q.ListChapterExternalIDsByMedia(ctx, id)
-		known := make(map[string]struct{}, len(before))
-		for _, e := range before {
-			known[e] = struct{}{}
-		}
 
 		after, err := s.SyncChapters(ctx, c, id)
-		newCount := 0
 		if err != nil {
 			s.updateMu.Lock()
 			s.updateProg.FailedTitles = append(s.updateProg.FailedTitles, m.Title)
@@ -170,26 +165,36 @@ func (s *Syncer) runLibraryUpdate(sc *sandbox.SupervisedClient, ids []int64) {
 			s.updateMu.Unlock()
 			continue
 		}
-		var newIDs []int64
-		for _, ch := range after {
-			if _, ok := known[ch.ExternalID]; !ok {
-				newCount++
-				newIDs = append(newIDs, ch.ID)
-			}
-		}
+		newIDs := newChapterIDs(before, after)
 		if s.onChecked != nil {
-			// A first-ever sync makes every chapter look new; that's a backlog, not new releases.
-			if len(before) == 0 {
-				newIDs = nil
-			}
 			s.onChecked(ctx, id, newIDs)
 		}
 
 		s.updateMu.Lock()
-		s.updateProg.NewChapters += newCount
+		s.updateProg.NewChapters += len(newIDs)
 		s.updateProg.Done++
 		s.updateMu.Unlock()
 	}
+}
+
+// newChapterIDs returns the chapters in after that weren't known before. A
+// first-ever sync (nothing known) returns none: every chapter looking new is a
+// backlog, not new releases, and mustn't be counted or auto-downloaded.
+func newChapterIDs(before []string, after []sqlcgen.Chapter) []int64 {
+	if len(before) == 0 {
+		return nil
+	}
+	known := make(map[string]struct{}, len(before))
+	for _, e := range before {
+		known[e] = struct{}{}
+	}
+	var ids []int64
+	for _, ch := range after {
+		if _, ok := known[ch.ExternalID]; !ok {
+			ids = append(ids, ch.ID)
+		}
+	}
+	return ids
 }
 
 func (s *Syncer) lockFor(packageName string) *sync.Mutex {
