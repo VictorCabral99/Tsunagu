@@ -29,7 +29,7 @@ func platformAsset() (asset, bool) {
 }
 
 // SupportedOnPlatform reports whether a managed FlareSolverr binary exists for
-// this OS/arch. macOS and linux/arm64 have no upstream build.
+// this OS/arch. macOS, linux/arm64 and windows/arm64 have no upstream build.
 func SupportedOnPlatform() bool {
 	_, ok := platformAsset()
 	return ok

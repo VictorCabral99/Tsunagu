@@ -36,7 +36,7 @@ jobs:
         run: |
           nix develop -c bash -c '
             cd backend
-            for t in windows/amd64 darwin/amd64 darwin/arm64 linux/amd64; do
+            for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
               GOOS=${t%/*} GOARCH=${t#*/} go build -o /dev/null ./cmd/server
             done
           '

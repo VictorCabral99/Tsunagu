@@ -25,7 +25,7 @@ jobs:
           mkdir -p out
           nix develop -c bash -c "
             cd backend
-            for t in windows/amd64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
+            for t in windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
               os=\${t%/*}; arch=\${t#*/}
               ext=''; [ \$os = windows ] && ext='.exe'
               GOOS=\$os GOARCH=\$arch CGO_ENABLED=0 go build \
@@ -59,6 +59,7 @@ jobs:
           - { os: macos-15-intel,   name: darwin-amd64 }
           - { os: macos-14,         name: darwin-arm64 }
           - { os: windows-latest,   name: windows-amd64 }
+          - { os: windows-11-arm,   name: windows-arm64 }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +82,11 @@ jobs:
         run: |
           mkdir -p out
           if [ "${{ runner.os }}" = "Windows" ]; then
-            7z a -tzip "out/runtime-${{ matrix.name }}.zip" runtime
+            if command -v 7z >/dev/null; then
+              7z a -tzip "out/runtime-${{ matrix.name }}.zip" runtime
+            else
+              pwsh -NoProfile -Command "Compress-Archive -Path runtime -DestinationPath out/runtime-${{ matrix.name }}.zip"
+            fi
           else
             tar czf "out/runtime-${{ matrix.name }}.tar.gz" runtime
           fi
@@ -165,6 +170,8 @@ jobs:
         with: { name: runtime-darwin-arm64, path: dl }
       - uses: actions/download-artifact@v4
         with: { name: runtime-windows-amd64, path: dl }
+      - uses: actions/download-artifact@v4
+        with: { name: runtime-windows-arm64, path: dl }
       - name: assemble bundles + checksums + manifest
         run: |
           set -eu
@@ -172,10 +179,10 @@ jobs:
           cp dl/tsunagu-* rel/
           cp dl/sandbox.jar rel/
           cp dl/runtime-* rel/
-          for t in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64; do
+          for t in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64 windows-arm64; do
             case "$t" in
-              windows-amd64) bin=tsunagu-windows-amd64.exe; ext=.exe; arc="rel/runtime-$t.zip" ;;
-              *)             bin=tsunagu-$t;                 ext="";   arc="rel/runtime-$t.tar.gz" ;;
+              windows-*) bin=tsunagu-$t.exe;  ext=.exe; arc="rel/runtime-$t.zip" ;;
+              *)         bin=tsunagu-$t;      ext="";   arc="rel/runtime-$t.tar.gz" ;;
             esac
             root="tsunagu-$t"
             mkdir -p "$root/sandbox"
@@ -186,7 +193,7 @@ jobs:
               *.zip) unzip -q "$arc" -d "$root/sandbox/" ;;
               *)     tar xzf "$arc" -C "$root/sandbox/" ;;
             esac
-            if [ "$t" = windows-amd64 ]; then
+            if [ "${t%-*}" = windows ]; then
               zip -qr "rel/$root.zip" "$root"
             else
               tar czf "rel/$root.tar.gz" "$root"
@@ -204,6 +211,7 @@ jobs:
             echo "  \"jar\": \"sandbox.jar\","
             echo "  \"binaries\": {"
             echo "    \"windows-amd64\": \"tsunagu-windows-amd64.exe\","
+            echo "    \"windows-arm64\": \"tsunagu-windows-arm64.exe\","
             echo "    \"darwin-amd64\": \"tsunagu-darwin-amd64\","
             echo "    \"darwin-arm64\": \"tsunagu-darwin-arm64\","
             echo "    \"linux-amd64\": \"tsunagu-linux-amd64\","
@@ -211,6 +219,7 @@ jobs:
             echo "  },"
             echo "  \"runtimes\": {"
             echo "    \"windows-amd64\": \"runtime-windows-amd64.zip\","
+            echo "    \"windows-arm64\": \"runtime-windows-arm64.zip\","
             echo "    \"darwin-amd64\": \"runtime-darwin-amd64.tar.gz\","
             echo "    \"darwin-arm64\": \"runtime-darwin-arm64.tar.gz\","
             echo "    \"linux-amd64\": \"runtime-linux-amd64.tar.gz\","
@@ -218,6 +227,7 @@ jobs:
             echo "  },"
             echo "  \"bundles\": {"
             echo "    \"windows-amd64\": \"tsunagu-windows-amd64.zip\","
+            echo "    \"windows-arm64\": \"tsunagu-windows-arm64.zip\","
             echo "    \"darwin-amd64\": \"tsunagu-darwin-amd64.tar.gz\","
             echo "    \"darwin-arm64\": \"tsunagu-darwin-arm64.tar.gz\","
             echo "    \"linux-amd64\": \"tsunagu-linux-amd64.tar.gz\","
