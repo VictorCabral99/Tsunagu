@@ -91,6 +91,7 @@ type Folder struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	IncludeInUpdate   int64          `json:"include_in_update"`
 	IncludeInDownload int64          `json:"include_in_download"`
+	ContentTypes      string         `json:"content_types"`
 }
 
 type Genre struct {

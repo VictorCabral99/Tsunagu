@@ -59,3 +59,7 @@ UPDATE folders SET
     include_in_download = ?
 WHERE id = ?
 RETURNING *;
+
+-- name: SetFolderContentTypes :one
+UPDATE folders SET content_types = ? WHERE id = ?
+RETURNING *;

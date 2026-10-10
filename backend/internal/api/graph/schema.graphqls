@@ -422,6 +422,8 @@ type Folder {
   sortOrder: Int!
   includeInUpdate: Boolean!
   includeInDownload: Boolean!
+  """Content types this folder is designated for; empty means all types."""
+  contentTypes: [ContentType!]!
 }
 
 enum LibrarySort {
@@ -566,6 +568,7 @@ type Mutation {
   refreshFolder(folderId: ID!): [Media!]!
   reorderFolder(folderId: ID!, sortOrder: Int!): Folder!
   updateFolderFlags(folderId: ID!, includeInUpdate: Boolean, includeInDownload: Boolean): Folder!
+  setFolderContentTypes(folderId: ID!, contentTypes: [ContentType!]!): Folder!
   clearImageCache: Boolean!
   clearStorageCategory(key: String!): StorageInfo!
   relocateDownloads(newPath: String!, migrate: Boolean!): RelocateDownloadsResult!

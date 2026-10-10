@@ -700,6 +700,7 @@ func toFolder(f sqlcgen.Folder) *model.Folder {
 		SortOrder:         int32(f.SortOrder),
 		IncludeInUpdate:   f.IncludeInUpdate != 0,
 		IncludeInDownload: f.IncludeInDownload != 0,
+		ContentTypes:      folderContentTypes(f.ContentTypes),
 	}
 }
 
@@ -844,4 +845,28 @@ func (r *Resolver) toSearchResponse(ctx context.Context, ext sqlcgen.Extension, 
 		results = append(results, toMedia(row, r.MediaDir))
 	}
 	return &model.SearchResponse{Results: results, HasNextPage: resp.HasNextPage}, nil
+}
+
+// folderContentTypes decodes a folder's stored designation ("manga,novel").
+// An empty list means the folder applies to every content type.
+func folderContentTypes(s string) []model.ContentType {
+	out := []model.ContentType{}
+	for _, part := range strings.Split(s, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, contentType(part))
+		}
+	}
+	return out
+}
+
+func folderContentTypesToString(cts []model.ContentType) string {
+	seen := map[string]bool{}
+	parts := []string{}
+	for _, c := range cts {
+		if s := contentTypeToString(&c); s != "" && !seen[s] {
+			seen[s] = true
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, ",")
 }

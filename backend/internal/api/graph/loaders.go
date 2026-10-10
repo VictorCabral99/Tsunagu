@@ -208,6 +208,7 @@ func foldersByMediaFn(q *sqlcgen.Queries) func(context.Context, []int64) ([][]sq
 				CreatedAt:         r.CreatedAt,
 				IncludeInUpdate:   r.IncludeInUpdate,
 				IncludeInDownload: r.IncludeInDownload,
+				ContentTypes:      r.ContentTypes,
 			})
 		}
 		out := make([][]sqlcgen.Folder, len(keys))

@@ -161,6 +161,7 @@ type Querier interface {
 	SetChapterNumber(ctx context.Context, arg SetChapterNumberParams) error
 	SetDownloadPosition(ctx context.Context, arg SetDownloadPositionParams) error
 	SetExtensionEnabled(ctx context.Context, arg SetExtensionEnabledParams) (Extension, error)
+	SetFolderContentTypes(ctx context.Context, arg SetFolderContentTypesParams) (Folder, error)
 	SetFolderSortOrder(ctx context.Context, arg SetFolderSortOrderParams) (Folder, error)
 	SetMangaPagePath(ctx context.Context, arg SetMangaPagePathParams) error
 	SetMediaContentBlockRank(ctx context.Context, arg SetMediaContentBlockRankParams) error

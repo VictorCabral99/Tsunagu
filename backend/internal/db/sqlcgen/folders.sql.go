@@ -29,7 +29,7 @@ func (q *Queries) AddMediaToFolder(ctx context.Context, arg AddMediaToFolderPara
 
 const createFolder = `-- name: CreateFolder :one
 INSERT INTO folders (name, kind, parent_folder_id) VALUES (?, 'custom', ?)
-RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download
+RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types
 `
 
 type CreateFolderParams struct {
@@ -50,6 +50,7 @@ func (q *Queries) CreateFolder(ctx context.Context, arg CreateFolderParams) (Fol
 		&i.CreatedAt,
 		&i.IncludeInUpdate,
 		&i.IncludeInDownload,
+		&i.ContentTypes,
 	)
 	return i, err
 }
@@ -64,7 +65,7 @@ func (q *Queries) DeleteFolder(ctx context.Context, id int64) error {
 }
 
 const getCustomFolderByName = `-- name: GetCustomFolderByName :one
-SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download FROM folders WHERE name = ? AND kind = 'custom' LIMIT 1
+SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types FROM folders WHERE name = ? AND kind = 'custom' LIMIT 1
 `
 
 func (q *Queries) GetCustomFolderByName(ctx context.Context, name string) (Folder, error) {
@@ -80,12 +81,13 @@ func (q *Queries) GetCustomFolderByName(ctx context.Context, name string) (Folde
 		&i.CreatedAt,
 		&i.IncludeInUpdate,
 		&i.IncludeInDownload,
+		&i.ContentTypes,
 	)
 	return i, err
 }
 
 const getFolder = `-- name: GetFolder :one
-SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download FROM folders WHERE id = ?
+SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types FROM folders WHERE id = ?
 `
 
 func (q *Queries) GetFolder(ctx context.Context, id int64) (Folder, error) {
@@ -101,12 +103,13 @@ func (q *Queries) GetFolder(ctx context.Context, id int64) (Folder, error) {
 		&i.CreatedAt,
 		&i.IncludeInUpdate,
 		&i.IncludeInDownload,
+		&i.ContentTypes,
 	)
 	return i, err
 }
 
 const getFolderBySystemKey = `-- name: GetFolderBySystemKey :one
-SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download FROM folders WHERE system_key = ?
+SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types FROM folders WHERE system_key = ?
 `
 
 func (q *Queries) GetFolderBySystemKey(ctx context.Context, systemKey sql.NullString) (Folder, error) {
@@ -122,12 +125,13 @@ func (q *Queries) GetFolderBySystemKey(ctx context.Context, systemKey sql.NullSt
 		&i.CreatedAt,
 		&i.IncludeInUpdate,
 		&i.IncludeInDownload,
+		&i.ContentTypes,
 	)
 	return i, err
 }
 
 const listFolders = `-- name: ListFolders :many
-SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download FROM folders ORDER BY kind, sort_order, name
+SELECT id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types FROM folders ORDER BY kind, sort_order, name
 `
 
 func (q *Queries) ListFolders(ctx context.Context) ([]Folder, error) {
@@ -149,6 +153,7 @@ func (q *Queries) ListFolders(ctx context.Context) ([]Folder, error) {
 			&i.CreatedAt,
 			&i.IncludeInUpdate,
 			&i.IncludeInDownload,
+			&i.ContentTypes,
 		); err != nil {
 			return nil, err
 		}
@@ -165,7 +170,7 @@ func (q *Queries) ListFolders(ctx context.Context) ([]Folder, error) {
 
 const listFoldersByMediaIDs = `-- name: ListFoldersByMediaIDs :many
 
-SELECT mf.media_id, f.id, f.name, f.kind, f.system_key, f.parent_folder_id, f.sort_order, f.created_at, f.include_in_update, f.include_in_download FROM folders f
+SELECT mf.media_id, f.id, f.name, f.kind, f.system_key, f.parent_folder_id, f.sort_order, f.created_at, f.include_in_update, f.include_in_download, f.content_types FROM folders f
 JOIN media_folders mf ON mf.folder_id = f.id
 WHERE mf.media_id IN (/*SLICE:media_ids*/?)
 ORDER BY mf.media_id, f.kind, f.sort_order, f.name
@@ -182,6 +187,7 @@ type ListFoldersByMediaIDsRow struct {
 	CreatedAt         time.Time      `json:"created_at"`
 	IncludeInUpdate   int64          `json:"include_in_update"`
 	IncludeInDownload int64          `json:"include_in_download"`
+	ContentTypes      string         `json:"content_types"`
 }
 
 func (q *Queries) ListFoldersByMediaIDs(ctx context.Context, mediaIds []int64) ([]ListFoldersByMediaIDsRow, error) {
@@ -214,6 +220,7 @@ func (q *Queries) ListFoldersByMediaIDs(ctx context.Context, mediaIds []int64) (
 			&i.CreatedAt,
 			&i.IncludeInUpdate,
 			&i.IncludeInDownload,
+			&i.ContentTypes,
 		); err != nil {
 			return nil, err
 		}
@@ -321,7 +328,7 @@ func (q *Queries) RemoveMediaFromFoldersByKind(ctx context.Context, arg RemoveMe
 
 const renameFolder = `-- name: RenameFolder :one
 UPDATE folders SET name = ? WHERE id = ? AND kind = 'custom'
-RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download
+RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types
 `
 
 type RenameFolderParams struct {
@@ -342,13 +349,42 @@ func (q *Queries) RenameFolder(ctx context.Context, arg RenameFolderParams) (Fol
 		&i.CreatedAt,
 		&i.IncludeInUpdate,
 		&i.IncludeInDownload,
+		&i.ContentTypes,
+	)
+	return i, err
+}
+
+const setFolderContentTypes = `-- name: SetFolderContentTypes :one
+UPDATE folders SET content_types = ? WHERE id = ?
+RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types
+`
+
+type SetFolderContentTypesParams struct {
+	ContentTypes string `json:"content_types"`
+	ID           int64  `json:"id"`
+}
+
+func (q *Queries) SetFolderContentTypes(ctx context.Context, arg SetFolderContentTypesParams) (Folder, error) {
+	row := q.db.QueryRowContext(ctx, setFolderContentTypes, arg.ContentTypes, arg.ID)
+	var i Folder
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Kind,
+		&i.SystemKey,
+		&i.ParentFolderID,
+		&i.SortOrder,
+		&i.CreatedAt,
+		&i.IncludeInUpdate,
+		&i.IncludeInDownload,
+		&i.ContentTypes,
 	)
 	return i, err
 }
 
 const setFolderSortOrder = `-- name: SetFolderSortOrder :one
 UPDATE folders SET sort_order = ? WHERE id = ?
-RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download
+RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types
 `
 
 type SetFolderSortOrderParams struct {
@@ -369,6 +405,7 @@ func (q *Queries) SetFolderSortOrder(ctx context.Context, arg SetFolderSortOrder
 		&i.CreatedAt,
 		&i.IncludeInUpdate,
 		&i.IncludeInDownload,
+		&i.ContentTypes,
 	)
 	return i, err
 }
@@ -378,7 +415,7 @@ UPDATE folders SET
     include_in_update = ?,
     include_in_download = ?
 WHERE id = ?
-RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download
+RETURNING id, name, kind, system_key, parent_folder_id, sort_order, created_at, include_in_update, include_in_download, content_types
 `
 
 type UpdateFolderFlagsParams struct {
@@ -400,6 +437,7 @@ func (q *Queries) UpdateFolderFlags(ctx context.Context, arg UpdateFolderFlagsPa
 		&i.CreatedAt,
 		&i.IncludeInUpdate,
 		&i.IncludeInDownload,
+		&i.ContentTypes,
 	)
 	return i, err
 }

@@ -171,6 +171,7 @@ type ComplexityRoot struct {
 	}
 
 	Folder struct {
+		ContentTypes      func(childComplexity int) int
 		ID                func(childComplexity int) int
 		IncludeInDownload func(childComplexity int) int
 		IncludeInUpdate   func(childComplexity int) int
@@ -322,6 +323,7 @@ type ComplexityRoot struct {
 		ResetContentFilterRules    func(childComplexity int) int
 		ResyncTrack                func(childComplexity int, linkID string) int
 		RetryDownload              func(childComplexity int, mediaID string, chapterID string) int
+		SetFolderContentTypes      func(childComplexity int, folderID string, contentTypes []model.ContentType) int
 		SetInLibrary               func(childComplexity int, mediaID string, inLibrary bool) int
 		SetMediaCover              func(childComplexity int, mediaID string, url *string) int
 		SetPassword                func(childComplexity int, newPassword string) int
@@ -682,6 +684,7 @@ type MutationResolver interface {
 	RefreshFolder(ctx context.Context, folderID string) ([]*model.Media, error)
 	ReorderFolder(ctx context.Context, folderID string, sortOrder int32) (*model.Folder, error)
 	UpdateFolderFlags(ctx context.Context, folderID string, includeInUpdate *bool, includeInDownload *bool) (*model.Folder, error)
+	SetFolderContentTypes(ctx context.Context, folderID string, contentTypes []model.ContentType) (*model.Folder, error)
 	ClearImageCache(ctx context.Context) (bool, error)
 	ClearStorageCategory(ctx context.Context, key string) (*model.StorageInfo, error)
 	RelocateDownloads(ctx context.Context, newPath string, migrate bool) (*model.RelocateDownloadsResult, error)
@@ -1317,6 +1320,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.ExtensionPage.Total(childComplexity), true
 
+	case "Folder.contentTypes":
+		if e.ComplexityRoot.Folder.ContentTypes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Folder.ContentTypes(childComplexity), true
 	case "Folder.id":
 		if e.ComplexityRoot.Folder.ID == nil {
 			break
@@ -2265,6 +2274,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RetryDownload(childComplexity, args["mediaId"].(string), args["chapterId"].(string)), true
+	case "Mutation.setFolderContentTypes":
+		if e.ComplexityRoot.Mutation.SetFolderContentTypes == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setFolderContentTypes_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SetFolderContentTypes(childComplexity, args["folderId"].(string), args["contentTypes"].([]model.ContentType)), true
 	case "Mutation.setInLibrary":
 		if e.ComplexityRoot.Mutation.SetInLibrary == nil {
 			break
@@ -4056,6 +4076,8 @@ func (ec *executionContext) childFields_Folder(ctx context.Context, field graphq
 		return ec.fieldContext_Folder_includeInUpdate(ctx, field)
 	case "includeInDownload":
 		return ec.fieldContext_Folder_includeInDownload(ctx, field)
+	case "contentTypes":
+		return ec.fieldContext_Folder_contentTypes(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Folder", field.Name)
 }
@@ -5535,6 +5557,28 @@ func (ec *executionContext) field_Mutation_retryDownload_args(ctx context.Contex
 		return nil, err
 	}
 	args["chapterId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setFolderContentTypes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "folderId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["folderId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "contentTypes",
+		func(ctx context.Context, v any) ([]model.ContentType, error) {
+			return ec.unmarshalNContentType2ᚕtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentTypeᚄ(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["contentTypes"] = arg1
 	return args, nil
 }
 
@@ -8804,6 +8848,29 @@ func (ec *executionContext) _Folder_includeInDownload(ctx context.Context, field
 }
 func (ec *executionContext) fieldContext_Folder_includeInDownload(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Folder", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _Folder_contentTypes(ctx context.Context, field graphql.CollectedField, obj *model.Folder) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Folder_contentTypes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ContentTypes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []model.ContentType) graphql.Marshaler {
+			return ec.marshalNContentType2ᚕtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentTypeᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Folder_contentTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Folder", field, false, false, errors.New("field of type ContentType does not have child fields"))
 }
 
 func (ec *executionContext) _GroupFilter_name(ctx context.Context, field graphql.CollectedField, obj *model.GroupFilter) (ret graphql.Marshaler) {
@@ -12099,6 +12166,50 @@ func (ec *executionContext) fieldContext_Mutation_updateFolderFlags(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateFolderFlags_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setFolderContentTypes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_setFolderContentTypes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SetFolderContentTypes(ctx, fc.Args["folderId"].(string), fc.Args["contentTypes"].([]model.ContentType))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Folder) graphql.Marshaler {
+			return ec.marshalNFolder2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐFolder(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_setFolderContentTypes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Folder(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setFolderContentTypes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -20888,6 +20999,11 @@ func (ec *executionContext) _Folder(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "contentTypes":
+			out.Values[i] = ec._Folder_contentTypes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -22342,6 +22458,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateFolderFlags":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateFolderFlags(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "setFolderContentTypes":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setFolderContentTypes(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -25394,10 +25517,6 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNAboutServer2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAboutServer(ctx context.Context, sel ast.SelectionSet, v model.AboutServer) graphql.Marshaler {
-	return ec._AboutServer(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNAboutServer2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAboutServer(ctx context.Context, sel ast.SelectionSet, v *model.AboutServer) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -25434,10 +25553,6 @@ func (ec *executionContext) marshalNAudioTrack2ᚖtsunaguᚋbackendᚋinternal�
 	return ec._AudioTrack(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAuthStatus2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAuthStatus(ctx context.Context, sel ast.SelectionSet, v model.AuthStatus) graphql.Marshaler {
-	return ec._AuthStatus(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNAuthStatus2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAuthStatus(ctx context.Context, sel ast.SelectionSet, v *model.AuthStatus) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -25446,10 +25561,6 @@ func (ec *executionContext) marshalNAuthStatus2ᚖtsunaguᚋbackendᚋinternal�
 		return graphql.Null
 	}
 	return ec._AuthStatus(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNBackupImportResult2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐBackupImportResult(ctx context.Context, sel ast.SelectionSet, v model.BackupImportResult) graphql.Marshaler {
-	return ec._BackupImportResult(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNBackupImportResult2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐBackupImportResult(ctx context.Context, sel ast.SelectionSet, v *model.BackupImportResult) graphql.Marshaler {
@@ -25478,10 +25589,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNChapter2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐChapter(ctx context.Context, sel ast.SelectionSet, v model.Chapter) graphql.Marshaler {
-	return ec._Chapter(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNChapter2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐChapterᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Chapter) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
@@ -25508,10 +25615,6 @@ func (ec *executionContext) marshalNChapter2ᚖtsunaguᚋbackendᚋinternalᚋap
 	return ec._Chapter(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNCloudflareSolver2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐCloudflareSolver(ctx context.Context, sel ast.SelectionSet, v model.CloudflareSolver) graphql.Marshaler {
-	return ec._CloudflareSolver(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNCloudflareSolver2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐCloudflareSolver(ctx context.Context, sel ast.SelectionSet, v *model.CloudflareSolver) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -25530,10 +25633,6 @@ func (ec *executionContext) unmarshalNContentBlockLevel2tsunaguᚋbackendᚋinte
 
 func (ec *executionContext) marshalNContentBlockLevel2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentBlockLevel(ctx context.Context, sel ast.SelectionSet, v model.ContentBlockLevel) graphql.Marshaler {
 	return v
-}
-
-func (ec *executionContext) marshalNContentFilterRule2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentFilterRule(ctx context.Context, sel ast.SelectionSet, v model.ContentFilterRule) graphql.Marshaler {
-	return ec._ContentFilterRule(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNContentFilterRule2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentFilterRuleᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ContentFilterRule) graphql.Marshaler {
@@ -25572,8 +25671,34 @@ func (ec *executionContext) marshalNContentType2tsunaguᚋbackendᚋinternalᚋa
 	return v
 }
 
-func (ec *executionContext) marshalNDatabaseBackup2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐDatabaseBackup(ctx context.Context, sel ast.SelectionSet, v model.DatabaseBackup) graphql.Marshaler {
-	return ec._DatabaseBackup(ctx, sel, &v)
+func (ec *executionContext) unmarshalNContentType2ᚕtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentTypeᚄ(ctx context.Context, v any) ([]model.ContentType, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]model.ContentType, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNContentType2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentType(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNContentType2ᚕtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ContentType) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNContentType2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentType(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNDatabaseBackup2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐDatabaseBackupᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.DatabaseBackup) graphql.Marshaler {
@@ -25600,10 +25725,6 @@ func (ec *executionContext) marshalNDatabaseBackup2ᚖtsunaguᚋbackendᚋintern
 		return graphql.Null
 	}
 	return ec._DatabaseBackup(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNDownload2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐDownload(ctx context.Context, sel ast.SelectionSet, v model.Download) graphql.Marshaler {
-	return ec._Download(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNDownload2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐDownloadᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Download) graphql.Marshaler {
@@ -25642,10 +25763,6 @@ func (ec *executionContext) marshalNDownloadStatus2tsunaguᚋbackendᚋinternal�
 	return v
 }
 
-func (ec *executionContext) marshalNDownloaderStatus2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐDownloaderStatus(ctx context.Context, sel ast.SelectionSet, v model.DownloaderStatus) graphql.Marshaler {
-	return ec._DownloaderStatus(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNDownloaderStatus2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐDownloaderStatus(ctx context.Context, sel ast.SelectionSet, v *model.DownloaderStatus) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -25654,10 +25771,6 @@ func (ec *executionContext) marshalNDownloaderStatus2ᚖtsunaguᚋbackendᚋinte
 		return graphql.Null
 	}
 	return ec._DownloaderStatus(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNExtension2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐExtension(ctx context.Context, sel ast.SelectionSet, v model.Extension) graphql.Marshaler {
-	return ec._Extension(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNExtension2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐExtensionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Extension) graphql.Marshaler {
@@ -25684,10 +25797,6 @@ func (ec *executionContext) marshalNExtension2ᚖtsunaguᚋbackendᚋinternalᚋ
 		return graphql.Null
 	}
 	return ec._Extension(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNExtensionPage2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐExtensionPage(ctx context.Context, sel ast.SelectionSet, v model.ExtensionPage) graphql.Marshaler {
-	return ec._ExtensionPage(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNExtensionPage2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐExtensionPage(ctx context.Context, sel ast.SelectionSet, v *model.ExtensionPage) graphql.Marshaler {
@@ -25769,10 +25878,6 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 		}
 	}
 	return graphql.WrapContextMarshaler(ctx, res)
-}
-
-func (ec *executionContext) marshalNFolder2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐFolder(ctx context.Context, sel ast.SelectionSet, v model.Folder) graphql.Marshaler {
-	return ec._Folder(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNFolder2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐFolderᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Folder) graphql.Marshaler {
@@ -25872,10 +25977,6 @@ func (ec *executionContext) marshalNLibrarySort2tsunaguᚋbackendᚋinternalᚋa
 	return v
 }
 
-func (ec *executionContext) marshalNLibraryUpdateStatus2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐLibraryUpdateStatus(ctx context.Context, sel ast.SelectionSet, v model.LibraryUpdateStatus) graphql.Marshaler {
-	return ec._LibraryUpdateStatus(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNLibraryUpdateStatus2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐLibraryUpdateStatus(ctx context.Context, sel ast.SelectionSet, v *model.LibraryUpdateStatus) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -25884,10 +25985,6 @@ func (ec *executionContext) marshalNLibraryUpdateStatus2ᚖtsunaguᚋbackendᚋi
 		return graphql.Null
 	}
 	return ec._LibraryUpdateStatus(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNMedia2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v model.Media) graphql.Marshaler {
-	return ec._Media(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNMedia2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Media) graphql.Marshaler {
@@ -25914,10 +26011,6 @@ func (ec *executionContext) marshalNMedia2ᚖtsunaguᚋbackendᚋinternalᚋapi�
 		return graphql.Null
 	}
 	return ec._Media(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNMediaPage2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaPage(ctx context.Context, sel ast.SelectionSet, v model.MediaPage) graphql.Marshaler {
-	return ec._MediaPage(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNMediaPage2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaPage(ctx context.Context, sel ast.SelectionSet, v *model.MediaPage) graphql.Marshaler {
@@ -25956,10 +26049,6 @@ func (ec *executionContext) marshalNMetadataCandidate2ᚖtsunaguᚋbackendᚋint
 	return ec._MetadataCandidate(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNMigrateMangaFormatResult2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMigrateMangaFormatResult(ctx context.Context, sel ast.SelectionSet, v model.MigrateMangaFormatResult) graphql.Marshaler {
-	return ec._MigrateMangaFormatResult(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNMigrateMangaFormatResult2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMigrateMangaFormatResult(ctx context.Context, sel ast.SelectionSet, v *model.MigrateMangaFormatResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -25968,10 +26057,6 @@ func (ec *executionContext) marshalNMigrateMangaFormatResult2ᚖtsunaguᚋbacken
 		return graphql.Null
 	}
 	return ec._MigrateMangaFormatResult(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNReadingProgress2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐReadingProgress(ctx context.Context, sel ast.SelectionSet, v model.ReadingProgress) graphql.Marshaler {
-	return ec._ReadingProgress(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNReadingProgress2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐReadingProgressᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ReadingProgress) graphql.Marshaler {
@@ -26026,10 +26111,6 @@ func (ec *executionContext) marshalNRecentChapter2ᚖtsunaguᚋbackendᚋinterna
 	return ec._RecentChapter(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNRelocateDownloadsResult2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRelocateDownloadsResult(ctx context.Context, sel ast.SelectionSet, v model.RelocateDownloadsResult) graphql.Marshaler {
-	return ec._RelocateDownloadsResult(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNRelocateDownloadsResult2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRelocateDownloadsResult(ctx context.Context, sel ast.SelectionSet, v *model.RelocateDownloadsResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -26040,10 +26121,6 @@ func (ec *executionContext) marshalNRelocateDownloadsResult2ᚖtsunaguᚋbackend
 	return ec._RelocateDownloadsResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNRelocateLocalSourceResult2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRelocateLocalSourceResult(ctx context.Context, sel ast.SelectionSet, v model.RelocateLocalSourceResult) graphql.Marshaler {
-	return ec._RelocateLocalSourceResult(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNRelocateLocalSourceResult2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRelocateLocalSourceResult(ctx context.Context, sel ast.SelectionSet, v *model.RelocateLocalSourceResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -26052,10 +26129,6 @@ func (ec *executionContext) marshalNRelocateLocalSourceResult2ᚖtsunaguᚋbacke
 		return graphql.Null
 	}
 	return ec._RelocateLocalSourceResult(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNRepository2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
-	return ec._Repository(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNRepository2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRepositoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Repository) graphql.Marshaler {
@@ -26082,10 +26155,6 @@ func (ec *executionContext) marshalNRepository2ᚖtsunaguᚋbackendᚋinternal�
 		return graphql.Null
 	}
 	return ec._Repository(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNSearchResponse2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐSearchResponse(ctx context.Context, sel ast.SelectionSet, v model.SearchResponse) graphql.Marshaler {
-	return ec._SearchResponse(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNSearchResponse2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐSearchResponse(ctx context.Context, sel ast.SelectionSet, v *model.SearchResponse) graphql.Marshaler {
@@ -26272,10 +26341,6 @@ func (ec *executionContext) marshalNStorageCategory2ᚖtsunaguᚋbackendᚋinter
 	return ec._StorageCategory(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNStorageInfo2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐStorageInfo(ctx context.Context, sel ast.SelectionSet, v model.StorageInfo) graphql.Marshaler {
-	return ec._StorageInfo(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNStorageInfo2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐStorageInfo(ctx context.Context, sel ast.SelectionSet, v *model.StorageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -26399,10 +26464,6 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalNTrackLink2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐTrackLink(ctx context.Context, sel ast.SelectionSet, v model.TrackLink) graphql.Marshaler {
-	return ec._TrackLink(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNTrackLink2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐTrackLinkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TrackLink) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
@@ -26481,10 +26542,6 @@ func (ec *executionContext) marshalNTrackStatus2ᚖtsunaguᚋbackendᚋinternal�
 	return ec._TrackStatus(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTracker2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐTracker(ctx context.Context, sel ast.SelectionSet, v model.Tracker) graphql.Marshaler {
-	return ec._Tracker(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNTracker2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐTrackerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tracker) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
@@ -26535,10 +26592,6 @@ func (ec *executionContext) marshalNTrackerLibraryEntry2ᚖtsunaguᚋbackendᚋi
 		return graphql.Null
 	}
 	return ec._TrackerLibraryEntry(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNUpdateSettingResult2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐUpdateSettingResult(ctx context.Context, sel ast.SelectionSet, v model.UpdateSettingResult) graphql.Marshaler {
-	return ec._UpdateSettingResult(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNUpdateSettingResult2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐUpdateSettingResult(ctx context.Context, sel ast.SelectionSet, v *model.UpdateSettingResult) graphql.Marshaler {

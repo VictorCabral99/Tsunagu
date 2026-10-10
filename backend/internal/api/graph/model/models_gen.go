@@ -167,6 +167,8 @@ type Folder struct {
 	SortOrder         int32   `json:"sortOrder"`
 	IncludeInUpdate   bool    `json:"includeInUpdate"`
 	IncludeInDownload bool    `json:"includeInDownload"`
+	// Content types this folder is designated for; empty means all types.
+	ContentTypes []ContentType `json:"contentTypes"`
 }
 
 type GroupFilter struct {
@@ -574,7 +576,7 @@ func (e *ContentBlockLevel) UnmarshalGQL(v any) error {
 }
 
 func (e ContentBlockLevel) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *ContentBlockLevel) UnmarshalJSON(b []byte) error {
@@ -631,7 +633,7 @@ func (e *ContentType) UnmarshalGQL(v any) error {
 }
 
 func (e ContentType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *ContentType) UnmarshalJSON(b []byte) error {
@@ -690,7 +692,7 @@ func (e *DownloadStatus) UnmarshalGQL(v any) error {
 }
 
 func (e DownloadStatus) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *DownloadStatus) UnmarshalJSON(b []byte) error {
@@ -749,7 +751,7 @@ func (e *FilterField) UnmarshalGQL(v any) error {
 }
 
 func (e FilterField) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *FilterField) UnmarshalJSON(b []byte) error {
@@ -810,7 +812,7 @@ func (e *LibrarySort) UnmarshalGQL(v any) error {
 }
 
 func (e LibrarySort) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *LibrarySort) UnmarshalJSON(b []byte) error {
@@ -865,7 +867,7 @@ func (e *SettingKind) UnmarshalGQL(v any) error {
 }
 
 func (e SettingKind) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *SettingKind) UnmarshalJSON(b []byte) error {
@@ -922,7 +924,7 @@ func (e *SettingScope) UnmarshalGQL(v any) error {
 }
 
 func (e SettingScope) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *SettingScope) UnmarshalJSON(b []byte) error {
@@ -979,7 +981,7 @@ func (e *SettingSource) UnmarshalGQL(v any) error {
 }
 
 func (e SettingSource) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *SettingSource) UnmarshalJSON(b []byte) error {
@@ -1036,7 +1038,7 @@ func (e *SettingType) UnmarshalGQL(v any) error {
 }
 
 func (e SettingType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *SettingType) UnmarshalJSON(b []byte) error {
@@ -1093,7 +1095,7 @@ func (e *SolverMode) UnmarshalGQL(v any) error {
 }
 
 func (e SolverMode) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *SolverMode) UnmarshalJSON(b []byte) error {
@@ -1154,7 +1156,7 @@ func (e *SolverState) UnmarshalGQL(v any) error {
 }
 
 func (e SolverState) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *SolverState) UnmarshalJSON(b []byte) error {
@@ -1213,7 +1215,7 @@ func (e *SourcePreferenceType) UnmarshalGQL(v any) error {
 }
 
 func (e SourcePreferenceType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 func (e *SourcePreferenceType) UnmarshalJSON(b []byte) error {
