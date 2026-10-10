@@ -1,13 +1,14 @@
 package localsource
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 )
 
 func pdfPageNames(pdfPath string) ([]string, error) {
-	n, err := api.PageCountFile(pdfPath)
+	n, err := api.PageCountFile(context.Background(), pdfPath)
 	if err != nil {
 		return nil, err
 	}

@@ -28,7 +28,7 @@
             # Java 21 for the sandbox (Gradle/Kotlin)
             jdk21
             kotlin
-            gradle
+            gradle_9
 
             protobuf
             protoc-gen-go

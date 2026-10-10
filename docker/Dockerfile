@@ -1,4 +1,4 @@
-FROM gradle:8.9-jdk21 AS sandbox-build
+FROM gradle:9.8-jdk21 AS sandbox-build
 WORKDIR /src
 COPY sandbox/ ./sandbox/
 COPY proto/ ./proto/
