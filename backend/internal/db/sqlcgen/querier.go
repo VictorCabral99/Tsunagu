@@ -7,6 +7,7 @@ package sqlcgen
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type Querier interface {
@@ -15,6 +16,7 @@ type Querier interface {
 	AddMediaToLibrary(ctx context.Context, id int64) (Medium, error)
 	AddTagToMedia(ctx context.Context, arg AddTagToMediaParams) error
 	BackfillMissingCoversFromMetadata(ctx context.Context) (int64, error)
+	CancelChapterDeletions(ctx context.Context, chapterIds []int64) error
 	ClearDownloads(ctx context.Context) error
 	ClearDownloadsByStatus(ctx context.Context, statuses []string) error
 	ClearExtensionIconPaths(ctx context.Context) error
@@ -37,6 +39,7 @@ type Querier interface {
 	CreateRepository(ctx context.Context, arg CreateRepositoryParams) (Repository, error)
 	CreateSourcelessMedia(ctx context.Context, arg CreateSourcelessMediaParams) (Medium, error)
 	CreateTag(ctx context.Context, name string) (Tag, error)
+	DeleteAllMediaAutomation(ctx context.Context) error
 	DeleteAnimeEpisodeStream(ctx context.Context, chapterID int64) error
 	DeleteContentFilterRule(ctx context.Context, id int64) error
 	DeleteDownload(ctx context.Context, id int64) error
@@ -47,6 +50,7 @@ type Querier interface {
 	DeleteMangaPage(ctx context.Context, arg DeleteMangaPageParams) error
 	DeleteMangaPages(ctx context.Context, chapterID int64) error
 	DeleteMedia(ctx context.Context, id int64) error
+	DeleteMediaAutomation(ctx context.Context, mediaID int64) error
 	DeleteMetadataLink(ctx context.Context, arg DeleteMetadataLinkParams) error
 	DeleteNovelChapterContent(ctx context.Context, chapterID int64) error
 	DeleteRepository(ctx context.Context, id int64) error
@@ -58,8 +62,12 @@ type Querier interface {
 	FailDownload(ctx context.Context, arg FailDownloadParams) error
 	GapFillMediaMetadata(ctx context.Context, arg GapFillMediaMetadataParams) (Medium, error)
 	GetAnimeEpisodeStream(ctx context.Context, chapterID int64) (AnimeEpisodeStream, error)
+	GetAutomationSettings(ctx context.Context) (AutomationSetting, error)
 	GetChapter(ctx context.Context, id int64) (Chapter, error)
 	GetChapterByMediaAndExternalID(ctx context.Context, arg GetChapterByMediaAndExternalIDParams) (Chapter, error)
+	// Unlike GetChapterDownloadContext this works after the series' extension was
+	// removed, so orphaned downloads can still be deleted.
+	GetChapterContentType(ctx context.Context, id int64) (string, error)
 	GetChapterDownloadContext(ctx context.Context, id int64) (GetChapterDownloadContextRow, error)
 	GetContentFilterInputs(ctx context.Context, id int64) (GetContentFilterInputsRow, error)
 	GetCustomFolderByName(ctx context.Context, name string) (Folder, error)
@@ -73,6 +81,7 @@ type Querier interface {
 	GetLatestDownloadsByChapterIDs(ctx context.Context, chapterIds []int64) ([]Download, error)
 	GetLocalMediaByExternalID(ctx context.Context, externalID string) (Medium, error)
 	GetMedia(ctx context.Context, id int64) (Medium, error)
+	GetMediaAutomation(ctx context.Context, mediaID int64) (MediaAutomation, error)
 	GetMediaByExtensionAndExternalID(ctx context.Context, arg GetMediaByExtensionAndExternalIDParams) (Medium, error)
 	GetMediaMetadataCover(ctx context.Context, mediaID int64) (string, error)
 	GetMetadataLink(ctx context.Context, arg GetMetadataLinkParams) (MetadataLink, error)
@@ -93,6 +102,8 @@ type Querier interface {
 	ListAnyDownloadedAnimePathsForMediaIDs(ctx context.Context, mediaIds []int64) ([]ListAnyDownloadedAnimePathsForMediaIDsRow, error)
 	ListAnyDownloadedMangaPathsForMediaIDs(ctx context.Context, mediaIds []int64) ([]ListAnyDownloadedMangaPathsForMediaIDsRow, error)
 	ListAnyDownloadedNovelPathsForMediaIDs(ctx context.Context, mediaIds []int64) ([]ListAnyDownloadedNovelPathsForMediaIDsRow, error)
+	// Chapters in reading order with what automation needs to know about each.
+	ListChapterAutomationState(ctx context.Context, mediaID int64) ([]ListChapterAutomationStateRow, error)
 	ListChapterExternalIDsByMedia(ctx context.Context, mediaID int64) ([]string, error)
 	ListChapterUpdates(ctx context.Context, arg ListChapterUpdatesParams) ([]ListChapterUpdatesRow, error)
 	ListChaptersByMedia(ctx context.Context, mediaID int64) ([]Chapter, error)
@@ -101,6 +112,7 @@ type Querier interface {
 	ListContentFilterRules(ctx context.Context) ([]ContentFilterRule, error)
 	ListDownloadedEpisodeStreamsByChapterIDs(ctx context.Context, chapterIds []int64) ([]ListDownloadedEpisodeStreamsByChapterIDsRow, error)
 	ListDownloadedNovelContentByChapterIDs(ctx context.Context, chapterIds []int64) ([]NovelChapterContent, error)
+	ListDueChapterDeletions(ctx context.Context, deleteAt time.Time) ([]ListDueChapterDeletionsRow, error)
 	ListExtensionLanguages(ctx context.Context, arg ListExtensionLanguagesParams) ([]string, error)
 	ListExtensionsByRepository(ctx context.Context, repositoryID int64) ([]Extension, error)
 	ListFolders(ctx context.Context) ([]Folder, error)
@@ -113,6 +125,7 @@ type Querier interface {
 	ListLibraryMediaForExport(ctx context.Context) ([]Medium, error)
 	ListLocalMedia(ctx context.Context) ([]Medium, error)
 	ListMangaPages(ctx context.Context, chapterID int64) ([]MangaPage, error)
+	ListMediaAutomation(ctx context.Context) ([]MediaAutomation, error)
 	ListMediaByIDs(ctx context.Context, ids []int64) ([]Medium, error)
 	ListMediaForGenre(ctx context.Context, genreID int64) ([]Medium, error)
 	ListMediaForTag(ctx context.Context, tagID int64) ([]Medium, error)
@@ -138,6 +151,7 @@ type Querier interface {
 	ListTrackerLinksByMedia(ctx context.Context, mediaID int64) ([]TrackerLink, error)
 	ListTrackerLinksByMediaIDs(ctx context.Context, mediaIds []int64) ([]TrackerLink, error)
 	ListUpdateTargetMediaIDs(ctx context.Context) ([]int64, error)
+	ListUpdateTargetsWithCheckedAt(ctx context.Context, mediaIds []int64) ([]ListUpdateTargetsWithCheckedAtRow, error)
 	MarkChaptersReadUpToNumber(ctx context.Context, arg MarkChaptersReadUpToNumberParams) error
 	MarkChaptersSynced(ctx context.Context, id int64) error
 	MarkExtensionInstalled(ctx context.Context, arg MarkExtensionInstalledParams) (Extension, error)
@@ -145,6 +159,7 @@ type Querier interface {
 	MarkExtensionUpdated(ctx context.Context, arg MarkExtensionUpdatedParams) (Extension, error)
 	MarkMediaExtensionRemoved(ctx context.Context, extensionID sql.NullInt64) error
 	MaxReadChapterNumber(ctx context.Context, mediaID int64) (float64, error)
+	MediaInAutoDownloadFolder(ctx context.Context, mediaID int64) (bool, error)
 	NextUnreadChapterByMediaIDs(ctx context.Context, mediaIds []int64) ([]Chapter, error)
 	QueryExtensions(ctx context.Context, arg QueryExtensionsParams) ([]Extension, error)
 	RemoveGenreFromMedia(ctx context.Context, arg RemoveGenreFromMediaParams) error
@@ -157,13 +172,16 @@ type Querier interface {
 	RenameLocalMedia(ctx context.Context, arg RenameLocalMediaParams) (Medium, error)
 	RequeueOrphanedDownloads(ctx context.Context) error
 	RetryDownload(ctx context.Context, id int64) (Download, error)
+	ScheduleChapterDeletion(ctx context.Context, arg ScheduleChapterDeletionParams) error
 	SetAnimeEpisodeStreamPath(ctx context.Context, arg SetAnimeEpisodeStreamPathParams) error
 	SetChapterNumber(ctx context.Context, arg SetChapterNumberParams) error
 	SetDownloadPosition(ctx context.Context, arg SetDownloadPositionParams) error
 	SetExtensionEnabled(ctx context.Context, arg SetExtensionEnabledParams) (Extension, error)
 	SetFolderContentTypes(ctx context.Context, arg SetFolderContentTypesParams) (Folder, error)
 	SetFolderSortOrder(ctx context.Context, arg SetFolderSortOrderParams) (Folder, error)
+	SetLastLibraryUpdateAt(ctx context.Context, lastLibraryUpdateAt sql.NullTime) error
 	SetMangaPagePath(ctx context.Context, arg SetMangaPagePathParams) error
+	SetMediaChaptersCheckedAt(ctx context.Context, arg SetMediaChaptersCheckedAtParams) error
 	SetMediaContentBlockRank(ctx context.Context, arg SetMediaContentBlockRankParams) error
 	SetMediaCoverOverride(ctx context.Context, arg SetMediaCoverOverrideParams) (Medium, error)
 	SetMediaMetadataSearchFailed(ctx context.Context, id int64) error
@@ -171,6 +189,7 @@ type Querier interface {
 	SetSetting(ctx context.Context, arg SetSettingParams) error
 	TouchMediaViewed(ctx context.Context, id int64) error
 	TouchRepositorySync(ctx context.Context, id int64) error
+	UpdateAutomationSettings(ctx context.Context, arg UpdateAutomationSettingsParams) (AutomationSetting, error)
 	UpdateChapterExternalID(ctx context.Context, arg UpdateChapterExternalIDParams) error
 	UpdateDownloadProgress(ctx context.Context, arg UpdateDownloadProgressParams) error
 	UpdateDownloadStats(ctx context.Context, arg UpdateDownloadStatsParams) error
@@ -185,6 +204,7 @@ type Querier interface {
 	UpsertAnimeEpisodeStream(ctx context.Context, arg UpsertAnimeEpisodeStreamParams) error
 	UpsertExtension(ctx context.Context, arg UpsertExtensionParams) (Extension, error)
 	UpsertMangaPage(ctx context.Context, arg UpsertMangaPageParams) error
+	UpsertMediaAutomation(ctx context.Context, arg UpsertMediaAutomationParams) (MediaAutomation, error)
 	UpsertMediaBare(ctx context.Context, arg UpsertMediaBareParams) (Medium, error)
 	UpsertMediaDetails(ctx context.Context, arg UpsertMediaDetailsParams) (Medium, error)
 	UpsertMetadataLink(ctx context.Context, arg UpsertMetadataLinkParams) (MetadataLink, error)

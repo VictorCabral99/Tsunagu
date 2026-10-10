@@ -299,6 +299,19 @@ func (q *Queries) GetChapterByMediaAndExternalID(ctx context.Context, arg GetCha
 	return i, err
 }
 
+const getChapterContentType = `-- name: GetChapterContentType :one
+SELECT m.content_type FROM chapters c JOIN media m ON m.id = c.media_id WHERE c.id = ?
+`
+
+// Unlike GetChapterDownloadContext this works after the series' extension was
+// removed, so orphaned downloads can still be deleted.
+func (q *Queries) GetChapterContentType(ctx context.Context, id int64) (string, error) {
+	row := q.db.QueryRowContext(ctx, getChapterContentType, id)
+	var content_type string
+	err := row.Scan(&content_type)
+	return content_type, err
+}
+
 const getChapterDownloadContext = `-- name: GetChapterDownloadContext :one
 SELECT
     c.id AS chapter_id,

@@ -29,6 +29,46 @@ type AuthStatus struct {
 	PasswordSet bool `json:"passwordSet"`
 }
 
+// Effective rules for a series after applying overrides and global settings.
+type AutomationRules struct {
+	AutoDownload     bool            `json:"autoDownload"`
+	DownloadAhead    int32           `json:"downloadAhead"`
+	DeleteOnRead     bool            `json:"deleteOnRead"`
+	DeleteDelayHours int32           `json:"deleteDelayHours"`
+	MaxKeepChapters  int32           `json:"maxKeepChapters"`
+	PauseUpdates     bool            `json:"pauseUpdates"`
+	RefreshInterval  RefreshInterval `json:"refreshInterval"`
+}
+
+type AutomationSettings struct {
+	// When off, no downloads or deletions happen automatically and scheduled updates stop.
+	Enabled bool `json:"enabled"`
+	// Ignore per-series overrides.
+	EnforceGlobal    bool            `json:"enforceGlobal"`
+	AutoDownload     bool            `json:"autoDownload"`
+	DownloadAhead    int32           `json:"downloadAhead"`
+	DeleteOnRead     bool            `json:"deleteOnRead"`
+	DeleteDelayHours int32           `json:"deleteDelayHours"`
+	MaxKeepChapters  int32           `json:"maxKeepChapters"`
+	RefreshInterval  RefreshInterval `json:"refreshInterval"`
+	UpdateOnOpen     bool            `json:"updateOnOpen"`
+	// True once any client has saved these settings.
+	Configured          bool       `json:"configured"`
+	LastLibraryUpdateAt *time.Time `json:"lastLibraryUpdateAt,omitempty"`
+}
+
+type AutomationSettingsInput struct {
+	Enabled          *bool            `json:"enabled,omitempty"`
+	EnforceGlobal    *bool            `json:"enforceGlobal,omitempty"`
+	AutoDownload     *bool            `json:"autoDownload,omitempty"`
+	DownloadAhead    *int32           `json:"downloadAhead,omitempty"`
+	DeleteOnRead     *bool            `json:"deleteOnRead,omitempty"`
+	DeleteDelayHours *int32           `json:"deleteDelayHours,omitempty"`
+	MaxKeepChapters  *int32           `json:"maxKeepChapters,omitempty"`
+	RefreshInterval  *RefreshInterval `json:"refreshInterval,omitempty"`
+	UpdateOnOpen     *bool            `json:"updateOnOpen,omitempty"`
+}
+
 type BackupImportResult struct {
 	MangaImported      int32    `json:"mangaImported"`
 	MangaSkipped       int32    `json:"mangaSkipped"`
@@ -248,6 +288,29 @@ type Media struct {
 	Metadata           *MetadataMatch     `json:"metadata,omitempty"`
 	Source             *Extension         `json:"source,omitempty"`
 	DownloadFolderPath *string            `json:"downloadFolderPath,omitempty"`
+}
+
+type MediaAutomation struct {
+	MediaID string `json:"mediaId"`
+	// Overrides; null means the global setting applies.
+	AutoDownload     *bool            `json:"autoDownload,omitempty"`
+	DownloadAhead    *int32           `json:"downloadAhead,omitempty"`
+	DeleteOnRead     *bool            `json:"deleteOnRead,omitempty"`
+	DeleteDelayHours *int32           `json:"deleteDelayHours,omitempty"`
+	MaxKeepChapters  *int32           `json:"maxKeepChapters,omitempty"`
+	PauseUpdates     *bool            `json:"pauseUpdates,omitempty"`
+	RefreshInterval  *RefreshInterval `json:"refreshInterval,omitempty"`
+	Effective        *AutomationRules `json:"effective"`
+}
+
+type MediaAutomationInput struct {
+	AutoDownload     *bool            `json:"autoDownload,omitempty"`
+	DownloadAhead    *int32           `json:"downloadAhead,omitempty"`
+	DeleteOnRead     *bool            `json:"deleteOnRead,omitempty"`
+	DeleteDelayHours *int32           `json:"deleteDelayHours,omitempty"`
+	MaxKeepChapters  *int32           `json:"maxKeepChapters,omitempty"`
+	PauseUpdates     *bool            `json:"pauseUpdates,omitempty"`
+	RefreshInterval  *RefreshInterval `json:"refreshInterval,omitempty"`
 }
 
 type MediaPage struct {
@@ -824,6 +887,118 @@ func (e *LibrarySort) UnmarshalJSON(b []byte) error {
 }
 
 func (e LibrarySort) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type LibraryUpdateTrigger string
+
+const (
+	LibraryUpdateTriggerManual  LibraryUpdateTrigger = "MANUAL"
+	LibraryUpdateTriggerAppOpen LibraryUpdateTrigger = "APP_OPEN"
+)
+
+var AllLibraryUpdateTrigger = []LibraryUpdateTrigger{
+	LibraryUpdateTriggerManual,
+	LibraryUpdateTriggerAppOpen,
+}
+
+func (e LibraryUpdateTrigger) IsValid() bool {
+	switch e {
+	case LibraryUpdateTriggerManual, LibraryUpdateTriggerAppOpen:
+		return true
+	}
+	return false
+}
+
+func (e LibraryUpdateTrigger) String() string {
+	return string(e)
+}
+
+func (e *LibraryUpdateTrigger) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = LibraryUpdateTrigger(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid LibraryUpdateTrigger", str)
+	}
+	return nil
+}
+
+func (e LibraryUpdateTrigger) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *LibraryUpdateTrigger) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e LibraryUpdateTrigger) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type RefreshInterval string
+
+const (
+	RefreshIntervalDaily  RefreshInterval = "DAILY"
+	RefreshIntervalWeekly RefreshInterval = "WEEKLY"
+	RefreshIntervalManual RefreshInterval = "MANUAL"
+)
+
+var AllRefreshInterval = []RefreshInterval{
+	RefreshIntervalDaily,
+	RefreshIntervalWeekly,
+	RefreshIntervalManual,
+}
+
+func (e RefreshInterval) IsValid() bool {
+	switch e {
+	case RefreshIntervalDaily, RefreshIntervalWeekly, RefreshIntervalManual:
+		return true
+	}
+	return false
+}
+
+func (e RefreshInterval) String() string {
+	return string(e)
+}
+
+func (e *RefreshInterval) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RefreshInterval(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RefreshInterval", str)
+	}
+	return nil
+}
+
+func (e RefreshInterval) MarshalGQL(w io.Writer) {
+	_, _ = fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RefreshInterval) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RefreshInterval) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

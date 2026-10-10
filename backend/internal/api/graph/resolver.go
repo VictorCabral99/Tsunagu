@@ -9,6 +9,7 @@ import (
 
 	"tsunagu/backend/internal/api/graph/model"
 	"tsunagu/backend/internal/auth"
+	"tsunagu/backend/internal/automation"
 	"tsunagu/backend/internal/config"
 	"tsunagu/backend/internal/contentfilter"
 	"tsunagu/backend/internal/db/sqlcgen"
@@ -36,6 +37,7 @@ type Resolver struct {
 	Fs        *flaresolverr.Manager
 	Cfg       *config.Store
 	Cf        *contentfilter.Manager
+	Au        *automation.Manager
 	Am        *auth.Manager
 	MediaDir  string
 	Name      string

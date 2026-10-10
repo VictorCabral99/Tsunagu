@@ -161,7 +161,7 @@ func (q *Queries) ListGenresForMedia(ctx context.Context, mediaID int64) ([]Genr
 }
 
 const listMediaForGenre = `-- name: ListMediaForGenre :many
-SELECT m.id, m.extension_id, m.extension_name, m.external_id, m.content_type, m.title, m.cover_path, m.cover_local_path, m.description, m.status, m.author, m.artist, m.extension_removed_at, m.added_at, m.last_viewed_at, m.details_fetched_at, m.updated_at, m.chapters_synced_at, m.cover_override, m.content_block_rank, m.metadata_search_failed_at FROM media m
+SELECT m.id, m.extension_id, m.extension_name, m.external_id, m.content_type, m.title, m.cover_path, m.cover_local_path, m.description, m.status, m.author, m.artist, m.extension_removed_at, m.added_at, m.last_viewed_at, m.details_fetched_at, m.updated_at, m.chapters_synced_at, m.cover_override, m.content_block_rank, m.metadata_search_failed_at, m.chapters_checked_at FROM media m
 JOIN media_genres mg ON mg.media_id = m.id
 WHERE mg.genre_id = ?
 ORDER BY m.added_at DESC
@@ -198,6 +198,7 @@ func (q *Queries) ListMediaForGenre(ctx context.Context, genreID int64) ([]Mediu
 			&i.CoverOverride,
 			&i.ContentBlockRank,
 			&i.MetadataSearchFailedAt,
+			&i.ChaptersCheckedAt,
 		); err != nil {
 			return nil, err
 		}

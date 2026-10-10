@@ -57,6 +57,30 @@ type ComplexityRoot struct {
 		PasswordSet func(childComplexity int) int
 	}
 
+	AutomationRules struct {
+		AutoDownload     func(childComplexity int) int
+		DeleteDelayHours func(childComplexity int) int
+		DeleteOnRead     func(childComplexity int) int
+		DownloadAhead    func(childComplexity int) int
+		MaxKeepChapters  func(childComplexity int) int
+		PauseUpdates     func(childComplexity int) int
+		RefreshInterval  func(childComplexity int) int
+	}
+
+	AutomationSettings struct {
+		AutoDownload        func(childComplexity int) int
+		Configured          func(childComplexity int) int
+		DeleteDelayHours    func(childComplexity int) int
+		DeleteOnRead        func(childComplexity int) int
+		DownloadAhead       func(childComplexity int) int
+		Enabled             func(childComplexity int) int
+		EnforceGlobal       func(childComplexity int) int
+		LastLibraryUpdateAt func(childComplexity int) int
+		MaxKeepChapters     func(childComplexity int) int
+		RefreshInterval     func(childComplexity int) int
+		UpdateOnOpen        func(childComplexity int) int
+	}
+
 	BackupImportResult struct {
 		CategoriesImported func(childComplexity int) int
 		MangaImported      func(childComplexity int) int
@@ -237,6 +261,18 @@ type ComplexityRoot struct {
 		UnreadCount        func(childComplexity int) int
 	}
 
+	MediaAutomation struct {
+		AutoDownload     func(childComplexity int) int
+		DeleteDelayHours func(childComplexity int) int
+		DeleteOnRead     func(childComplexity int) int
+		DownloadAhead    func(childComplexity int) int
+		Effective        func(childComplexity int) int
+		MaxKeepChapters  func(childComplexity int) int
+		MediaID          func(childComplexity int) int
+		PauseUpdates     func(childComplexity int) int
+		RefreshInterval  func(childComplexity int) int
+	}
+
 	MediaPage struct {
 		HasMore func(childComplexity int) int
 		Items   func(childComplexity int) int
@@ -321,15 +357,17 @@ type ComplexityRoot struct {
 		ReorderFolder              func(childComplexity int, folderID string, sortOrder int32) int
 		RescanLocalMedia           func(childComplexity int) int
 		ResetContentFilterRules    func(childComplexity int) int
+		ResetMediaAutomation       func(childComplexity int, mediaID *string) int
 		ResyncTrack                func(childComplexity int, linkID string) int
 		RetryDownload              func(childComplexity int, mediaID string, chapterID string) int
 		SetFolderContentTypes      func(childComplexity int, folderID string, contentTypes []model.ContentType) int
 		SetInLibrary               func(childComplexity int, mediaID string, inLibrary bool) int
+		SetMediaAutomation         func(childComplexity int, mediaID string, input model.MediaAutomationInput) int
 		SetMediaCover              func(childComplexity int, mediaID string, url *string) int
 		SetPassword                func(childComplexity int, newPassword string) int
 		SetSourcePreference        func(childComplexity int, extensionID string, key string, value string) int
 		StartDownloader            func(childComplexity int) int
-		StartLibraryUpdate         func(childComplexity int, folderID *string) int
+		StartLibraryUpdate         func(childComplexity int, folderID *string, trigger *model.LibraryUpdateTrigger) int
 		StopDownloader             func(childComplexity int) int
 		SyncChapters               func(childComplexity int, mediaID string) int
 		SyncRepositories           func(childComplexity int) int
@@ -340,6 +378,7 @@ type ComplexityRoot struct {
 		UninstallCloudflareSolver  func(childComplexity int) int
 		UninstallExtension         func(childComplexity int, packageName string) int
 		UnlinkMetadata             func(childComplexity int, mediaID string) int
+		UpdateAutomationSettings   func(childComplexity int, input model.AutomationSettingsInput) int
 		UpdateExtension            func(childComplexity int, packageName string) int
 		UpdateFolderFlags          func(childComplexity int, folderID string, includeInUpdate *bool, includeInDownload *bool) int
 		UpdateReadingProgress      func(childComplexity int, mediaID string, chapterID string, progress float64, completed *bool, positionSeconds *float64, durationSeconds *float64) int
@@ -348,44 +387,47 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		About               func(childComplexity int) int
-		AuthStatus          func(childComplexity int) int
-		AvailableExtensions func(childComplexity int, repositoryID string) int
-		Chapter             func(childComplexity int, id string) int
-		ChapterUpdates      func(childComplexity int, since *time.Time, limit *int32) int
-		CloudflareSolver    func(childComplexity int) int
-		ContentFilterRules  func(childComplexity int) int
-		DatabaseBackups     func(childComplexity int) int
-		DownloadQueue       func(childComplexity int) int
-		DownloadStatus      func(childComplexity int, mediaID string, chapterID string) int
-		DownloaderStatus    func(childComplexity int) int
-		Extensions          func(childComplexity int, repositoryID *string, query *string, contentType *model.ContentType, lang *string, installed *bool, limit *int32, offset *int32) int
-		FilterOptions       func(childComplexity int, extensionID string) int
-		Folder              func(childComplexity int, id string) int
-		Folders             func(childComplexity int) int
-		InstalledExtensions func(childComplexity int) int
-		LatestUpdates       func(childComplexity int, extensionID string, page *int32) int
-		Library             func(childComplexity int, filter *model.LibraryFilter, sort *model.LibrarySortInput, limit *int32, offset *int32) int
-		LibraryGenres       func(childComplexity int, minCount *int32) int
-		LibraryTags         func(childComplexity int, minCount *int32) int
-		LibraryUpdateStatus func(childComplexity int) int
-		LocalSourceSearch   func(childComplexity int, query *string, page *int32) int
-		Media               func(childComplexity int, id string) int
-		MediaInFolder       func(childComplexity int, folderID string) int
-		PopularManga        func(childComplexity int, extensionID string, page *int32) int
-		ReadingProgress     func(childComplexity int, mediaID string) int
-		RecentChapters      func(childComplexity int, since *time.Time, limit *int32) int
-		Repositories        func(childComplexity int) int
-		ResolveMedia        func(childComplexity int, extensionID string, externalID string, syncChapters *bool) int
-		Search              func(childComplexity int, extensionID string, query string, page *int32, filters []*model.FilterInput) int
-		SearchMetadata      func(childComplexity int, query string, contentType model.ContentType, provider *string) int
-		ServerSettings      func(childComplexity int) int
-		SkipTimestamps      func(childComplexity int, chapterID string, episodeLengthMs *int32) int
-		SourcePreferences   func(childComplexity int, extensionID string) int
-		StorageInfo         func(childComplexity int) int
-		TrackSearch         func(childComplexity int, trackerKey string, query string, contentType *model.ContentType) int
-		TrackerLibrary      func(childComplexity int, trackerKey string, contentType model.ContentType, statuses []string) int
-		Trackers            func(childComplexity int) int
+		About                    func(childComplexity int) int
+		AuthStatus               func(childComplexity int) int
+		AutomationSettings       func(childComplexity int) int
+		AvailableExtensions      func(childComplexity int, repositoryID string) int
+		Chapter                  func(childComplexity int, id string) int
+		ChapterUpdates           func(childComplexity int, since *time.Time, limit *int32) int
+		CloudflareSolver         func(childComplexity int) int
+		ContentFilterRules       func(childComplexity int) int
+		DatabaseBackups          func(childComplexity int) int
+		DownloadQueue            func(childComplexity int) int
+		DownloadStatus           func(childComplexity int, mediaID string, chapterID string) int
+		DownloaderStatus         func(childComplexity int) int
+		Extensions               func(childComplexity int, repositoryID *string, query *string, contentType *model.ContentType, lang *string, installed *bool, limit *int32, offset *int32) int
+		FilterOptions            func(childComplexity int, extensionID string) int
+		Folder                   func(childComplexity int, id string) int
+		Folders                  func(childComplexity int) int
+		InstalledExtensions      func(childComplexity int) int
+		LatestUpdates            func(childComplexity int, extensionID string, page *int32) int
+		Library                  func(childComplexity int, filter *model.LibraryFilter, sort *model.LibrarySortInput, limit *int32, offset *int32) int
+		LibraryGenres            func(childComplexity int, minCount *int32) int
+		LibraryTags              func(childComplexity int, minCount *int32) int
+		LibraryUpdateStatus      func(childComplexity int) int
+		LocalSourceSearch        func(childComplexity int, query *string, page *int32) int
+		Media                    func(childComplexity int, id string) int
+		MediaAutomation          func(childComplexity int, mediaID string) int
+		MediaAutomationOverrides func(childComplexity int) int
+		MediaInFolder            func(childComplexity int, folderID string) int
+		PopularManga             func(childComplexity int, extensionID string, page *int32) int
+		ReadingProgress          func(childComplexity int, mediaID string) int
+		RecentChapters           func(childComplexity int, since *time.Time, limit *int32) int
+		Repositories             func(childComplexity int) int
+		ResolveMedia             func(childComplexity int, extensionID string, externalID string, syncChapters *bool) int
+		Search                   func(childComplexity int, extensionID string, query string, page *int32, filters []*model.FilterInput) int
+		SearchMetadata           func(childComplexity int, query string, contentType model.ContentType, provider *string) int
+		ServerSettings           func(childComplexity int) int
+		SkipTimestamps           func(childComplexity int, chapterID string, episodeLengthMs *int32) int
+		SourcePreferences        func(childComplexity int, extensionID string) int
+		StorageInfo              func(childComplexity int) int
+		TrackSearch              func(childComplexity int, trackerKey string, query string, contentType *model.ContentType) int
+		TrackerLibrary           func(childComplexity int, trackerKey string, contentType model.ContentType, statuses []string) int
+		Trackers                 func(childComplexity int) int
 	}
 
 	ReadingProgress struct {
@@ -696,7 +738,10 @@ type MutationResolver interface {
 	ImportMihonBackup(ctx context.Context, name string) (*model.BackupImportResult, error)
 	SetPassword(ctx context.Context, newPassword string) (bool, error)
 	DisableServerAuth(ctx context.Context) (bool, error)
-	StartLibraryUpdate(ctx context.Context, folderID *string) (bool, error)
+	StartLibraryUpdate(ctx context.Context, folderID *string, trigger *model.LibraryUpdateTrigger) (bool, error)
+	UpdateAutomationSettings(ctx context.Context, input model.AutomationSettingsInput) (*model.AutomationSettings, error)
+	SetMediaAutomation(ctx context.Context, mediaID string, input model.MediaAutomationInput) (*model.MediaAutomation, error)
+	ResetMediaAutomation(ctx context.Context, mediaID *string) (bool, error)
 	SetMediaCover(ctx context.Context, mediaID string, url *string) (*model.Media, error)
 	RefetchMediaCover(ctx context.Context, mediaID string) (*model.Media, error)
 	RescanLocalMedia(ctx context.Context) ([]*model.Media, error)
@@ -715,6 +760,9 @@ type MutationResolver interface {
 	RefreshMetadataMatch(ctx context.Context, mediaID string) (*model.Media, error)
 }
 type QueryResolver interface {
+	AutomationSettings(ctx context.Context) (*model.AutomationSettings, error)
+	MediaAutomation(ctx context.Context, mediaID string) (*model.MediaAutomation, error)
+	MediaAutomationOverrides(ctx context.Context) ([]*model.MediaAutomation, error)
 	About(ctx context.Context) (*model.AboutServer, error)
 	Folders(ctx context.Context) ([]*model.Folder, error)
 	Folder(ctx context.Context, id string) (*model.Folder, error)
@@ -811,6 +859,116 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.AuthStatus.PasswordSet(childComplexity), true
+
+	case "AutomationRules.autoDownload":
+		if e.ComplexityRoot.AutomationRules.AutoDownload == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationRules.AutoDownload(childComplexity), true
+	case "AutomationRules.deleteDelayHours":
+		if e.ComplexityRoot.AutomationRules.DeleteDelayHours == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationRules.DeleteDelayHours(childComplexity), true
+	case "AutomationRules.deleteOnRead":
+		if e.ComplexityRoot.AutomationRules.DeleteOnRead == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationRules.DeleteOnRead(childComplexity), true
+	case "AutomationRules.downloadAhead":
+		if e.ComplexityRoot.AutomationRules.DownloadAhead == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationRules.DownloadAhead(childComplexity), true
+	case "AutomationRules.maxKeepChapters":
+		if e.ComplexityRoot.AutomationRules.MaxKeepChapters == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationRules.MaxKeepChapters(childComplexity), true
+	case "AutomationRules.pauseUpdates":
+		if e.ComplexityRoot.AutomationRules.PauseUpdates == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationRules.PauseUpdates(childComplexity), true
+	case "AutomationRules.refreshInterval":
+		if e.ComplexityRoot.AutomationRules.RefreshInterval == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationRules.RefreshInterval(childComplexity), true
+
+	case "AutomationSettings.autoDownload":
+		if e.ComplexityRoot.AutomationSettings.AutoDownload == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.AutoDownload(childComplexity), true
+	case "AutomationSettings.configured":
+		if e.ComplexityRoot.AutomationSettings.Configured == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.Configured(childComplexity), true
+	case "AutomationSettings.deleteDelayHours":
+		if e.ComplexityRoot.AutomationSettings.DeleteDelayHours == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.DeleteDelayHours(childComplexity), true
+	case "AutomationSettings.deleteOnRead":
+		if e.ComplexityRoot.AutomationSettings.DeleteOnRead == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.DeleteOnRead(childComplexity), true
+	case "AutomationSettings.downloadAhead":
+		if e.ComplexityRoot.AutomationSettings.DownloadAhead == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.DownloadAhead(childComplexity), true
+	case "AutomationSettings.enabled":
+		if e.ComplexityRoot.AutomationSettings.Enabled == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.Enabled(childComplexity), true
+	case "AutomationSettings.enforceGlobal":
+		if e.ComplexityRoot.AutomationSettings.EnforceGlobal == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.EnforceGlobal(childComplexity), true
+	case "AutomationSettings.lastLibraryUpdateAt":
+		if e.ComplexityRoot.AutomationSettings.LastLibraryUpdateAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.LastLibraryUpdateAt(childComplexity), true
+	case "AutomationSettings.maxKeepChapters":
+		if e.ComplexityRoot.AutomationSettings.MaxKeepChapters == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.MaxKeepChapters(childComplexity), true
+	case "AutomationSettings.refreshInterval":
+		if e.ComplexityRoot.AutomationSettings.RefreshInterval == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.RefreshInterval(childComplexity), true
+	case "AutomationSettings.updateOnOpen":
+		if e.ComplexityRoot.AutomationSettings.UpdateOnOpen == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AutomationSettings.UpdateOnOpen(childComplexity), true
 
 	case "BackupImportResult.categoriesImported":
 		if e.ComplexityRoot.BackupImportResult.CategoriesImported == nil {
@@ -1637,6 +1795,61 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Media.UnreadCount(childComplexity), true
 
+	case "MediaAutomation.autoDownload":
+		if e.ComplexityRoot.MediaAutomation.AutoDownload == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.AutoDownload(childComplexity), true
+	case "MediaAutomation.deleteDelayHours":
+		if e.ComplexityRoot.MediaAutomation.DeleteDelayHours == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.DeleteDelayHours(childComplexity), true
+	case "MediaAutomation.deleteOnRead":
+		if e.ComplexityRoot.MediaAutomation.DeleteOnRead == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.DeleteOnRead(childComplexity), true
+	case "MediaAutomation.downloadAhead":
+		if e.ComplexityRoot.MediaAutomation.DownloadAhead == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.DownloadAhead(childComplexity), true
+	case "MediaAutomation.effective":
+		if e.ComplexityRoot.MediaAutomation.Effective == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.Effective(childComplexity), true
+	case "MediaAutomation.maxKeepChapters":
+		if e.ComplexityRoot.MediaAutomation.MaxKeepChapters == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.MaxKeepChapters(childComplexity), true
+	case "MediaAutomation.mediaId":
+		if e.ComplexityRoot.MediaAutomation.MediaID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.MediaID(childComplexity), true
+	case "MediaAutomation.pauseUpdates":
+		if e.ComplexityRoot.MediaAutomation.PauseUpdates == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.PauseUpdates(childComplexity), true
+	case "MediaAutomation.refreshInterval":
+		if e.ComplexityRoot.MediaAutomation.RefreshInterval == nil {
+			break
+		}
+
+		return e.ComplexityRoot.MediaAutomation.RefreshInterval(childComplexity), true
+
 	case "MediaPage.hasMore":
 		if e.ComplexityRoot.MediaPage.HasMore == nil {
 			break
@@ -2252,6 +2465,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.ResetContentFilterRules(childComplexity), true
+	case "Mutation.resetMediaAutomation":
+		if e.ComplexityRoot.Mutation.ResetMediaAutomation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_resetMediaAutomation_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ResetMediaAutomation(childComplexity, args["mediaId"].(*string)), true
 	case "Mutation.resyncTrack":
 		if e.ComplexityRoot.Mutation.ResyncTrack == nil {
 			break
@@ -2296,6 +2520,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SetInLibrary(childComplexity, args["mediaId"].(string), args["inLibrary"].(bool)), true
+	case "Mutation.setMediaAutomation":
+		if e.ComplexityRoot.Mutation.SetMediaAutomation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setMediaAutomation_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SetMediaAutomation(childComplexity, args["mediaId"].(string), args["input"].(model.MediaAutomationInput)), true
 	case "Mutation.setMediaCover":
 		if e.ComplexityRoot.Mutation.SetMediaCover == nil {
 			break
@@ -2345,7 +2580,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Mutation.StartLibraryUpdate(childComplexity, args["folderId"].(*string)), true
+		return e.ComplexityRoot.Mutation.StartLibraryUpdate(childComplexity, args["folderId"].(*string), args["trigger"].(*model.LibraryUpdateTrigger)), true
 	case "Mutation.stopDownloader":
 		if e.ComplexityRoot.Mutation.StopDownloader == nil {
 			break
@@ -2441,6 +2676,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.UnlinkMetadata(childComplexity, args["mediaId"].(string)), true
+	case "Mutation.updateAutomationSettings":
+		if e.ComplexityRoot.Mutation.UpdateAutomationSettings == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateAutomationSettings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateAutomationSettings(childComplexity, args["input"].(model.AutomationSettingsInput)), true
 	case "Mutation.updateExtension":
 		if e.ComplexityRoot.Mutation.UpdateExtension == nil {
 			break
@@ -2509,6 +2755,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.AuthStatus(childComplexity), true
+	case "Query.automationSettings":
+		if e.ComplexityRoot.Query.AutomationSettings == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.AutomationSettings(childComplexity), true
 	case "Query.availableExtensions":
 		if e.ComplexityRoot.Query.AvailableExtensions == nil {
 			break
@@ -2701,6 +2953,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Media(childComplexity, args["id"].(string)), true
+	case "Query.mediaAutomation":
+		if e.ComplexityRoot.Query.MediaAutomation == nil {
+			break
+		}
+
+		args, err := ec.field_Query_mediaAutomation_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.MediaAutomation(childComplexity, args["mediaId"].(string)), true
+	case "Query.mediaAutomationOverrides":
+		if e.ComplexityRoot.Query.MediaAutomationOverrides == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.MediaAutomationOverrides(childComplexity), true
 	case "Query.mediaInFolder":
 		if e.ComplexityRoot.Query.MediaInFolder == nil {
 			break
@@ -3709,11 +3978,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputAutomationSettingsInput,
 		ec.unmarshalInputCheckBoxFilterInput,
 		ec.unmarshalInputFilterInput,
 		ec.unmarshalInputGroupFilterInput,
 		ec.unmarshalInputLibraryFilter,
 		ec.unmarshalInputLibrarySortInput,
+		ec.unmarshalInputMediaAutomationInput,
 		ec.unmarshalInputSelectFilterInput,
 		ec.unmarshalInputSortFilterInput,
 		ec.unmarshalInputTextFilterInput,
@@ -3840,6 +4111,54 @@ func (ec *executionContext) childFields_AuthStatus(ctx context.Context, field gr
 		return ec.fieldContext_AuthStatus_passwordSet(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type AuthStatus", field.Name)
+}
+
+func (ec *executionContext) childFields_AutomationRules(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "autoDownload":
+		return ec.fieldContext_AutomationRules_autoDownload(ctx, field)
+	case "downloadAhead":
+		return ec.fieldContext_AutomationRules_downloadAhead(ctx, field)
+	case "deleteOnRead":
+		return ec.fieldContext_AutomationRules_deleteOnRead(ctx, field)
+	case "deleteDelayHours":
+		return ec.fieldContext_AutomationRules_deleteDelayHours(ctx, field)
+	case "maxKeepChapters":
+		return ec.fieldContext_AutomationRules_maxKeepChapters(ctx, field)
+	case "pauseUpdates":
+		return ec.fieldContext_AutomationRules_pauseUpdates(ctx, field)
+	case "refreshInterval":
+		return ec.fieldContext_AutomationRules_refreshInterval(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AutomationRules", field.Name)
+}
+
+func (ec *executionContext) childFields_AutomationSettings(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "enabled":
+		return ec.fieldContext_AutomationSettings_enabled(ctx, field)
+	case "enforceGlobal":
+		return ec.fieldContext_AutomationSettings_enforceGlobal(ctx, field)
+	case "autoDownload":
+		return ec.fieldContext_AutomationSettings_autoDownload(ctx, field)
+	case "downloadAhead":
+		return ec.fieldContext_AutomationSettings_downloadAhead(ctx, field)
+	case "deleteOnRead":
+		return ec.fieldContext_AutomationSettings_deleteOnRead(ctx, field)
+	case "deleteDelayHours":
+		return ec.fieldContext_AutomationSettings_deleteDelayHours(ctx, field)
+	case "maxKeepChapters":
+		return ec.fieldContext_AutomationSettings_maxKeepChapters(ctx, field)
+	case "refreshInterval":
+		return ec.fieldContext_AutomationSettings_refreshInterval(ctx, field)
+	case "updateOnOpen":
+		return ec.fieldContext_AutomationSettings_updateOnOpen(ctx, field)
+	case "configured":
+		return ec.fieldContext_AutomationSettings_configured(ctx, field)
+	case "lastLibraryUpdateAt":
+		return ec.fieldContext_AutomationSettings_lastLibraryUpdateAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AutomationSettings", field.Name)
 }
 
 func (ec *executionContext) childFields_BackupImportResult(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -4172,6 +4491,30 @@ func (ec *executionContext) childFields_Media(ctx context.Context, field graphql
 		return ec.fieldContext_Media_downloadFolderPath(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Media", field.Name)
+}
+
+func (ec *executionContext) childFields_MediaAutomation(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "mediaId":
+		return ec.fieldContext_MediaAutomation_mediaId(ctx, field)
+	case "autoDownload":
+		return ec.fieldContext_MediaAutomation_autoDownload(ctx, field)
+	case "downloadAhead":
+		return ec.fieldContext_MediaAutomation_downloadAhead(ctx, field)
+	case "deleteOnRead":
+		return ec.fieldContext_MediaAutomation_deleteOnRead(ctx, field)
+	case "deleteDelayHours":
+		return ec.fieldContext_MediaAutomation_deleteDelayHours(ctx, field)
+	case "maxKeepChapters":
+		return ec.fieldContext_MediaAutomation_maxKeepChapters(ctx, field)
+	case "pauseUpdates":
+		return ec.fieldContext_MediaAutomation_pauseUpdates(ctx, field)
+	case "refreshInterval":
+		return ec.fieldContext_MediaAutomation_refreshInterval(ctx, field)
+	case "effective":
+		return ec.fieldContext_MediaAutomation_effective(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type MediaAutomation", field.Name)
 }
 
 func (ec *executionContext) childFields_MediaPage(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -5524,6 +5867,20 @@ func (ec *executionContext) field_Mutation_reorderFolder_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_resetMediaAutomation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "mediaId",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOID2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["mediaId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_resyncTrack_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5604,6 +5961,28 @@ func (ec *executionContext) field_Mutation_setInLibrary_args(ctx context.Context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_setMediaAutomation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "mediaId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["mediaId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.MediaAutomationInput, error) {
+			return ec.unmarshalNMediaAutomationInput2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomationInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_setMediaCover_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5681,6 +6060,14 @@ func (ec *executionContext) field_Mutation_startLibraryUpdate_args(ctx context.C
 		return nil, err
 	}
 	args["folderId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "trigger",
+		func(ctx context.Context, v any) (*model.LibraryUpdateTrigger, error) {
+			return ec.unmarshalOLibraryUpdateTrigger2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐLibraryUpdateTrigger(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["trigger"] = arg1
 	return args, nil
 }
 
@@ -5787,6 +6174,20 @@ func (ec *executionContext) field_Mutation_unlinkMetadata_args(ctx context.Conte
 		return nil, err
 	}
 	args["mediaId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateAutomationSettings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.AutomationSettingsInput, error) {
+			return ec.unmarshalNAutomationSettingsInput2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAutomationSettingsInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -6231,6 +6632,20 @@ func (ec *executionContext) field_Query_localSourceSearch_args(ctx context.Conte
 		return nil, err
 	}
 	args["page"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_mediaAutomation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "mediaId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["mediaId"] = arg0
 	return args, nil
 }
 
@@ -6710,6 +7125,420 @@ func (ec *executionContext) _AuthStatus_passwordSet(ctx context.Context, field g
 }
 func (ec *executionContext) fieldContext_AuthStatus_passwordSet(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("AuthStatus", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationRules_autoDownload(ctx context.Context, field graphql.CollectedField, obj *model.AutomationRules) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationRules_autoDownload(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AutoDownload, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationRules_autoDownload(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationRules", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationRules_downloadAhead(ctx context.Context, field graphql.CollectedField, obj *model.AutomationRules) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationRules_downloadAhead(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DownloadAhead, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationRules_downloadAhead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationRules", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationRules_deleteOnRead(ctx context.Context, field graphql.CollectedField, obj *model.AutomationRules) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationRules_deleteOnRead(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeleteOnRead, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationRules_deleteOnRead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationRules", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationRules_deleteDelayHours(ctx context.Context, field graphql.CollectedField, obj *model.AutomationRules) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationRules_deleteDelayHours(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeleteDelayHours, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationRules_deleteDelayHours(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationRules", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationRules_maxKeepChapters(ctx context.Context, field graphql.CollectedField, obj *model.AutomationRules) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationRules_maxKeepChapters(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxKeepChapters, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationRules_maxKeepChapters(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationRules", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationRules_pauseUpdates(ctx context.Context, field graphql.CollectedField, obj *model.AutomationRules) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationRules_pauseUpdates(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PauseUpdates, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationRules_pauseUpdates(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationRules", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationRules_refreshInterval(ctx context.Context, field graphql.CollectedField, obj *model.AutomationRules) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationRules_refreshInterval(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RefreshInterval, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.RefreshInterval) graphql.Marshaler {
+			return ec.marshalNRefreshInterval2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationRules_refreshInterval(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationRules", field, false, false, errors.New("field of type RefreshInterval does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_enabled(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_enabled(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Enabled, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_enforceGlobal(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_enforceGlobal(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.EnforceGlobal, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_enforceGlobal(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_autoDownload(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_autoDownload(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AutoDownload, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_autoDownload(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_downloadAhead(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_downloadAhead(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DownloadAhead, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_downloadAhead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_deleteOnRead(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_deleteOnRead(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeleteOnRead, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_deleteOnRead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_deleteDelayHours(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_deleteDelayHours(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeleteDelayHours, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_deleteDelayHours(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_maxKeepChapters(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_maxKeepChapters(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxKeepChapters, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_maxKeepChapters(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_refreshInterval(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_refreshInterval(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RefreshInterval, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.RefreshInterval) graphql.Marshaler {
+			return ec.marshalNRefreshInterval2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_refreshInterval(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type RefreshInterval does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_updateOnOpen(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_updateOnOpen(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdateOnOpen, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_updateOnOpen(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_configured(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_configured(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Configured, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_configured(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AutomationSettings_lastLibraryUpdateAt(ctx context.Context, field graphql.CollectedField, obj *model.AutomationSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AutomationSettings_lastLibraryUpdateAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.LastLibraryUpdateAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_AutomationSettings_lastLibraryUpdateAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AutomationSettings", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _BackupImportResult_mangaImported(ctx context.Context, field graphql.CollectedField, obj *model.BackupImportResult) (ret graphql.Marshaler) {
@@ -9934,6 +10763,222 @@ func (ec *executionContext) fieldContext_Media_downloadFolderPath(_ context.Cont
 	return graphql.NewScalarFieldContext("Media", field, true, true, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _MediaAutomation_mediaId(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_mediaId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MediaID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_mediaId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_autoDownload(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_autoDownload(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AutoDownload, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *bool) graphql.Marshaler {
+			return ec.marshalOBoolean2ᚖbool(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_autoDownload(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_downloadAhead(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_downloadAhead(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DownloadAhead, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_downloadAhead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_deleteOnRead(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_deleteOnRead(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeleteOnRead, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *bool) graphql.Marshaler {
+			return ec.marshalOBoolean2ᚖbool(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_deleteOnRead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_deleteDelayHours(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_deleteDelayHours(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeleteDelayHours, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_deleteDelayHours(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_maxKeepChapters(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_maxKeepChapters(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxKeepChapters, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_maxKeepChapters(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_pauseUpdates(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_pauseUpdates(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PauseUpdates, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *bool) graphql.Marshaler {
+			return ec.marshalOBoolean2ᚖbool(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_pauseUpdates(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_refreshInterval(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_refreshInterval(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RefreshInterval, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RefreshInterval) graphql.Marshaler {
+			return ec.marshalORefreshInterval2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_refreshInterval(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("MediaAutomation", field, false, false, errors.New("field of type RefreshInterval does not have child fields"))
+}
+
+func (ec *executionContext) _MediaAutomation_effective(ctx context.Context, field graphql.CollectedField, obj *model.MediaAutomation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_MediaAutomation_effective(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Effective, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.AutomationRules) graphql.Marshaler {
+			return ec.marshalNAutomationRules2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAutomationRules(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_MediaAutomation_effective(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MediaAutomation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AutomationRules(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _MediaPage_items(ctx context.Context, field graphql.CollectedField, obj *model.MediaPage) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12644,7 +13689,7 @@ func (ec *executionContext) _Mutation_startLibraryUpdate(ctx context.Context, fi
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().StartLibraryUpdate(ctx, fc.Args["folderId"].(*string))
+			return ec.Resolvers.Mutation().StartLibraryUpdate(ctx, fc.Args["folderId"].(*string), fc.Args["trigger"].(*model.LibraryUpdateTrigger))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
@@ -12672,6 +13717,138 @@ func (ec *executionContext) fieldContext_Mutation_startLibraryUpdate(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_startLibraryUpdate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateAutomationSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateAutomationSettings(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateAutomationSettings(ctx, fc.Args["input"].(model.AutomationSettingsInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.AutomationSettings) graphql.Marshaler {
+			return ec.marshalNAutomationSettings2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAutomationSettings(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateAutomationSettings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AutomationSettings(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateAutomationSettings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setMediaAutomation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_setMediaAutomation(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SetMediaAutomation(ctx, fc.Args["mediaId"].(string), fc.Args["input"].(model.MediaAutomationInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.MediaAutomation) graphql.Marshaler {
+			return ec.marshalNMediaAutomation2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomation(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_setMediaAutomation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_MediaAutomation(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setMediaAutomation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_resetMediaAutomation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_resetMediaAutomation(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ResetMediaAutomation(ctx, fc.Args["mediaId"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_resetMediaAutomation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_resetMediaAutomation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -13366,6 +14543,114 @@ func (ec *executionContext) fieldContext_Mutation_refreshMetadataMatch(ctx conte
 	if fc.Args, err = ec.field_Mutation_refreshMetadataMatch_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_automationSettings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_automationSettings(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().AutomationSettings(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.AutomationSettings) graphql.Marshaler {
+			return ec.marshalNAutomationSettings2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAutomationSettings(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_automationSettings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AutomationSettings(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_mediaAutomation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_mediaAutomation(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().MediaAutomation(ctx, fc.Args["mediaId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.MediaAutomation) graphql.Marshaler {
+			return ec.marshalNMediaAutomation2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomation(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_mediaAutomation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_MediaAutomation(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_mediaAutomation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_mediaAutomationOverrides(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_mediaAutomationOverrides(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().MediaAutomationOverrides(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.MediaAutomation) graphql.Marshaler {
+			return ec.marshalNMediaAutomation2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomationᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_mediaAutomationOverrides(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_MediaAutomation(ctx, field)
+		},
 	}
 	return fc, nil
 }
@@ -19273,6 +20558,92 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAutomationSettingsInput(ctx context.Context, obj any) (model.AutomationSettingsInput, error) {
+	var it model.AutomationSettingsInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"enabled", "enforceGlobal", "autoDownload", "downloadAhead", "deleteOnRead", "deleteDelayHours", "maxKeepChapters", "refreshInterval", "updateOnOpen"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "enabled":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enabled"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Enabled = data
+		case "enforceGlobal":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enforceGlobal"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EnforceGlobal = data
+		case "autoDownload":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoDownload"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AutoDownload = data
+		case "downloadAhead":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("downloadAhead"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DownloadAhead = data
+		case "deleteOnRead":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deleteOnRead"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DeleteOnRead = data
+		case "deleteDelayHours":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deleteDelayHours"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DeleteDelayHours = data
+		case "maxKeepChapters":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxKeepChapters"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxKeepChapters = data
+		case "refreshInterval":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refreshInterval"))
+			data, err := ec.unmarshalORefreshInterval2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RefreshInterval = data
+		case "updateOnOpen":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("updateOnOpen"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UpdateOnOpen = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCheckBoxFilterInput(ctx context.Context, obj any) (model.CheckBoxFilterInput, error) {
 	var it model.CheckBoxFilterInput
 	if obj == nil {
@@ -19527,6 +20898,78 @@ func (ec *executionContext) unmarshalInputLibrarySortInput(ctx context.Context, 
 				return it, err
 			}
 			it.Ascending = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputMediaAutomationInput(ctx context.Context, obj any) (model.MediaAutomationInput, error) {
+	var it model.MediaAutomationInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"autoDownload", "downloadAhead", "deleteOnRead", "deleteDelayHours", "maxKeepChapters", "pauseUpdates", "refreshInterval"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "autoDownload":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoDownload"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AutoDownload = data
+		case "downloadAhead":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("downloadAhead"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DownloadAhead = data
+		case "deleteOnRead":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deleteOnRead"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DeleteOnRead = data
+		case "deleteDelayHours":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deleteDelayHours"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DeleteDelayHours = data
+		case "maxKeepChapters":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxKeepChapters"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxKeepChapters = data
+		case "pauseUpdates":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pauseUpdates"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PauseUpdates = data
+		case "refreshInterval":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refreshInterval"))
+			data, err := ec.unmarshalORefreshInterval2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RefreshInterval = data
 		}
 	}
 	return it, nil
@@ -19849,6 +21292,162 @@ func (ec *executionContext) _AuthStatus(ctx context.Context, sel ast.SelectionSe
 		case "passwordSet":
 			out.Values[i] = ec._AuthStatus_passwordSet(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var automationRulesImplementors = []string{"AutomationRules"}
+
+func (ec *executionContext) _AutomationRules(ctx context.Context, sel ast.SelectionSet, obj *model.AutomationRules) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, automationRulesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AutomationRules")
+		case "autoDownload":
+			out.Values[i] = ec._AutomationRules_autoDownload(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "downloadAhead":
+			out.Values[i] = ec._AutomationRules_downloadAhead(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteOnRead":
+			out.Values[i] = ec._AutomationRules_deleteOnRead(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteDelayHours":
+			out.Values[i] = ec._AutomationRules_deleteDelayHours(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxKeepChapters":
+			out.Values[i] = ec._AutomationRules_maxKeepChapters(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pauseUpdates":
+			out.Values[i] = ec._AutomationRules_pauseUpdates(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refreshInterval":
+			out.Values[i] = ec._AutomationRules_refreshInterval(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var automationSettingsImplementors = []string{"AutomationSettings"}
+
+func (ec *executionContext) _AutomationSettings(ctx context.Context, sel ast.SelectionSet, obj *model.AutomationSettings) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, automationSettingsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AutomationSettings")
+		case "enabled":
+			out.Values[i] = ec._AutomationSettings_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "enforceGlobal":
+			out.Values[i] = ec._AutomationSettings_enforceGlobal(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "autoDownload":
+			out.Values[i] = ec._AutomationSettings_autoDownload(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "downloadAhead":
+			out.Values[i] = ec._AutomationSettings_downloadAhead(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteOnRead":
+			out.Values[i] = ec._AutomationSettings_deleteOnRead(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteDelayHours":
+			out.Values[i] = ec._AutomationSettings_deleteDelayHours(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxKeepChapters":
+			out.Values[i] = ec._AutomationSettings_maxKeepChapters(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refreshInterval":
+			out.Values[i] = ec._AutomationSettings_refreshInterval(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateOnOpen":
+			out.Values[i] = ec._AutomationSettings_updateOnOpen(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "configured":
+			out.Values[i] = ec._AutomationSettings_configured(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lastLibraryUpdateAt":
+			out.Values[i] = ec._AutomationSettings_lastLibraryUpdateAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
 		default:
@@ -21834,6 +23433,84 @@ func (ec *executionContext) _Media(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var mediaAutomationImplementors = []string{"MediaAutomation"}
+
+func (ec *executionContext) _MediaAutomation(ctx context.Context, sel ast.SelectionSet, obj *model.MediaAutomation) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mediaAutomationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MediaAutomation")
+		case "mediaId":
+			out.Values[i] = ec._MediaAutomation_mediaId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "autoDownload":
+			out.Values[i] = ec._MediaAutomation_autoDownload(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "downloadAhead":
+			out.Values[i] = ec._MediaAutomation_downloadAhead(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "deleteOnRead":
+			out.Values[i] = ec._MediaAutomation_deleteOnRead(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "deleteDelayHours":
+			out.Values[i] = ec._MediaAutomation_deleteDelayHours(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "maxKeepChapters":
+			out.Values[i] = ec._MediaAutomation_maxKeepChapters(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "pauseUpdates":
+			out.Values[i] = ec._MediaAutomation_pauseUpdates(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "refreshInterval":
+			out.Values[i] = ec._MediaAutomation_refreshInterval(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "effective":
+			out.Values[i] = ec._MediaAutomation_effective(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var mediaPageImplementors = []string{"MediaPage"}
 
 func (ec *executionContext) _MediaPage(ctx context.Context, sel ast.SelectionSet, obj *model.MediaPage) graphql.Marshaler {
@@ -22553,6 +24230,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateAutomationSettings":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateAutomationSettings(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "setMediaAutomation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setMediaAutomation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resetMediaAutomation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_resetMediaAutomation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "setMediaCover":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_setMediaCover(ctx, field)
@@ -22706,6 +24404,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "automationSettings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_automationSettings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "mediaAutomation":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_mediaAutomation(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "mediaAutomationOverrides":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_mediaAutomationOverrides(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "about":
 			field := field
 
@@ -25563,6 +27327,31 @@ func (ec *executionContext) marshalNAuthStatus2ᚖtsunaguᚋbackendᚋinternal�
 	return ec._AuthStatus(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNAutomationRules2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAutomationRules(ctx context.Context, sel ast.SelectionSet, v *model.AutomationRules) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AutomationRules(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAutomationSettings2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAutomationSettings(ctx context.Context, sel ast.SelectionSet, v *model.AutomationSettings) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AutomationSettings(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNAutomationSettingsInput2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐAutomationSettingsInput(ctx context.Context, v any) (model.AutomationSettingsInput, error) {
+	res, err := ec.unmarshalInputAutomationSettingsInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNBackupImportResult2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐBackupImportResult(ctx context.Context, sel ast.SelectionSet, v *model.BackupImportResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -26013,6 +27802,37 @@ func (ec *executionContext) marshalNMedia2ᚖtsunaguᚋbackendᚋinternalᚋapi�
 	return ec._Media(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNMediaAutomation2ᚕᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.MediaAutomation) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNMediaAutomation2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomation(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNMediaAutomation2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomation(ctx context.Context, sel ast.SelectionSet, v *model.MediaAutomation) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._MediaAutomation(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNMediaAutomationInput2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaAutomationInput(ctx context.Context, v any) (model.MediaAutomationInput, error) {
+	res, err := ec.unmarshalInputMediaAutomationInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNMediaPage2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMediaPage(ctx context.Context, sel ast.SelectionSet, v *model.MediaPage) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -26109,6 +27929,16 @@ func (ec *executionContext) marshalNRecentChapter2ᚖtsunaguᚋbackendᚋinterna
 		return graphql.Null
 	}
 	return ec._RecentChapter(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRefreshInterval2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx context.Context, v any) (model.RefreshInterval, error) {
+	var res model.RefreshInterval
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRefreshInterval2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx context.Context, sel ast.SelectionSet, v model.RefreshInterval) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNRelocateDownloadsResult2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRelocateDownloadsResult(ctx context.Context, sel ast.SelectionSet, v *model.RelocateDownloadsResult) graphql.Marshaler {
@@ -27017,6 +28847,22 @@ func (ec *executionContext) unmarshalOLibrarySortInput2ᚖtsunaguᚋbackendᚋin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalOLibraryUpdateTrigger2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐLibraryUpdateTrigger(ctx context.Context, v any) (*model.LibraryUpdateTrigger, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.LibraryUpdateTrigger)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOLibraryUpdateTrigger2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐLibraryUpdateTrigger(ctx context.Context, sel ast.SelectionSet, v *model.LibraryUpdateTrigger) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) marshalOMedia2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐMedia(ctx context.Context, sel ast.SelectionSet, v *model.Media) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -27036,6 +28882,22 @@ func (ec *executionContext) marshalOReadingProgress2ᚖtsunaguᚋbackendᚋinter
 		return graphql.Null
 	}
 	return ec._ReadingProgress(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalORefreshInterval2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx context.Context, v any) (*model.RefreshInterval, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.RefreshInterval)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalORefreshInterval2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐRefreshInterval(ctx context.Context, sel ast.SelectionSet, v *model.RefreshInterval) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOSelectFilterInput2ᚖtsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐSelectFilterInput(ctx context.Context, v any) (*model.SelectFilterInput, error) {

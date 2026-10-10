@@ -222,3 +222,8 @@ SELECT id, title FROM chapters WHERE number IS NULL OR number <= 0;
 
 -- name: SetChapterNumber :exec
 UPDATE chapters SET number = ? WHERE id = ?;
+
+-- name: GetChapterContentType :one
+-- Unlike GetChapterDownloadContext this works after the series' extension was
+-- removed, so orphaned downloads can still be deleted.
+SELECT m.content_type FROM chapters c JOIN media m ON m.id = c.media_id WHERE c.id = ?;

@@ -37,6 +37,11 @@ type Syncer struct {
 
 	enricher  Enricher
 	recompute Recomputer
+
+	// onChecked runs after a library update syncs one series, with the IDs of
+	// chapters that were new; onFinished runs once the whole update is done.
+	onChecked  func(ctx context.Context, mediaID int64, newChapterIDs []int64)
+	onFinished func(ctx context.Context)
 }
 
 type Enricher interface {
@@ -49,6 +54,15 @@ type Recomputer interface {
 
 func (s *Syncer) SetEnricher(e Enricher)     { s.enricher = e }
 func (s *Syncer) SetRecomputer(r Recomputer) { s.recompute = r }
+
+// SetLibraryUpdateHooks registers callbacks for library update progress.
+func (s *Syncer) SetLibraryUpdateHooks(
+	onChecked func(ctx context.Context, mediaID int64, newChapterIDs []int64),
+	onFinished func(ctx context.Context),
+) {
+	s.onChecked = onChecked
+	s.onFinished = onFinished
+}
 
 func New(db *sql.DB, q *sqlcgen.Queries, cacheDir, mediaDir string) *Syncer {
 	return &Syncer{db: db, q: q, cacheDir: cacheDir, mediaDir: mediaDir, locks: make(map[string]*sync.Mutex)}
@@ -73,27 +87,30 @@ func (s *Syncer) LibraryUpdateStatus() LibraryUpdateProgress {
 	return p
 }
 
-func (s *Syncer) StartLibraryUpdate(sc *sandbox.SupervisedClient, folderID *int64) (bool, error) {
+// LibraryUpdateTargets lists the series a library update covers: a folder's
+// members, or every series in an update-enabled folder or no folder at all.
+func (s *Syncer) LibraryUpdateTargets(ctx context.Context, folderID *int64) ([]int64, error) {
+	if folderID == nil {
+		return s.q.ListUpdateTargetMediaIDs(ctx)
+	}
+	rows, err := s.q.ListMediaInFolder(ctx, *folderID)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int64, 0, len(rows))
+	for _, m := range rows {
+		ids = append(ids, m.ID)
+	}
+	return ids, nil
+}
+
+// StartLibraryUpdate syncs chapters for the given series in the background.
+// It returns false without starting if an update is already running.
+func (s *Syncer) StartLibraryUpdate(sc *sandbox.SupervisedClient, ids []int64) bool {
 	s.updateMu.Lock()
 	if s.updateProg.Running {
 		s.updateMu.Unlock()
-		return false, nil
-	}
-
-	var ids []int64
-	var err error
-	if folderID != nil {
-		var rows []sqlcgen.Medium
-		rows, err = s.q.ListMediaInFolder(context.Background(), *folderID)
-		for _, m := range rows {
-			ids = append(ids, m.ID)
-		}
-	} else {
-		ids, err = s.q.ListUpdateTargetMediaIDs(context.Background())
-	}
-	if err != nil {
-		s.updateMu.Unlock()
-		return false, err
+		return false
 	}
 
 	s.updateProg = LibraryUpdateProgress{
@@ -104,7 +121,7 @@ func (s *Syncer) StartLibraryUpdate(sc *sandbox.SupervisedClient, folderID *int6
 	s.updateMu.Unlock()
 
 	go s.runLibraryUpdate(sc, ids)
-	return true, nil
+	return true
 }
 
 func (s *Syncer) runLibraryUpdate(sc *sandbox.SupervisedClient, ids []int64) {
@@ -115,6 +132,9 @@ func (s *Syncer) runLibraryUpdate(sc *sandbox.SupervisedClient, ids []int64) {
 		s.updateProg.CurrentTitle = ""
 		s.updateProg.FinishedAt = time.Now()
 		s.updateMu.Unlock()
+		if s.onFinished != nil {
+			s.onFinished(ctx)
+		}
 	}()
 
 	c, err := sc.Ensure(ctx)
@@ -150,10 +170,19 @@ func (s *Syncer) runLibraryUpdate(sc *sandbox.SupervisedClient, ids []int64) {
 			s.updateMu.Unlock()
 			continue
 		}
+		var newIDs []int64
 		for _, ch := range after {
 			if _, ok := known[ch.ExternalID]; !ok {
 				newCount++
+				newIDs = append(newIDs, ch.ID)
 			}
+		}
+		if s.onChecked != nil {
+			// A first-ever sync makes every chapter look new; that's a backlog, not new releases.
+			if len(before) == 0 {
+				newIDs = nil
+			}
+			s.onChecked(ctx, id, newIDs)
 		}
 
 		s.updateMu.Lock()

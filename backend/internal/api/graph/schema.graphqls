@@ -452,6 +452,10 @@ input LibraryFilter {
 }
 
 type Query {
+  automationSettings: AutomationSettings!
+  mediaAutomation(mediaId: ID!): MediaAutomation!
+  """Series that have at least one override."""
+  mediaAutomationOverrides: [MediaAutomation!]!
   about: AboutServer!
   folders: [Folder!]!
   folder(id: ID!): Folder
@@ -583,7 +587,17 @@ type Mutation {
   setPassword(newPassword: String!): Boolean!
   disableServerAuth: Boolean!
 
-  startLibraryUpdate(folderId: ID): Boolean!
+  """
+  Starts a library update. APP_OPEN respects the "update on open" setting, a
+  short cooldown, and skips paused/manual series; MANUAL skips paused series
+  unless a folder is given. Returns false when nothing was started.
+  """
+  startLibraryUpdate(folderId: ID, trigger: LibraryUpdateTrigger = MANUAL): Boolean!
+  updateAutomationSettings(input: AutomationSettingsInput!): AutomationSettings!
+  """Replaces a series' overrides; null fields inherit the global settings."""
+  setMediaAutomation(mediaId: ID!, input: MediaAutomationInput!): MediaAutomation!
+  """Clears overrides for one series, or for every series when mediaId is omitted."""
+  resetMediaAutomation(mediaId: ID): Boolean!
 
   setMediaCover(mediaId: ID!, url: String): Media!
   refetchMediaCover(mediaId: ID!): Media!
@@ -704,4 +718,78 @@ input SortFilterInput {
   hasState: Boolean!
   index: Int
   ascending: Boolean
+}
+
+enum LibraryUpdateTrigger {
+  MANUAL
+  APP_OPEN
+}
+
+enum RefreshInterval {
+  DAILY
+  WEEKLY
+  MANUAL
+}
+
+type AutomationSettings {
+  """When off, no downloads or deletions happen automatically and scheduled updates stop."""
+  enabled: Boolean!
+  """Ignore per-series overrides."""
+  enforceGlobal: Boolean!
+  autoDownload: Boolean!
+  downloadAhead: Int!
+  deleteOnRead: Boolean!
+  deleteDelayHours: Int!
+  maxKeepChapters: Int!
+  refreshInterval: RefreshInterval!
+  updateOnOpen: Boolean!
+  """True once any client has saved these settings."""
+  configured: Boolean!
+  lastLibraryUpdateAt: Time
+}
+
+input AutomationSettingsInput {
+  enabled: Boolean
+  enforceGlobal: Boolean
+  autoDownload: Boolean
+  downloadAhead: Int
+  deleteOnRead: Boolean
+  deleteDelayHours: Int
+  maxKeepChapters: Int
+  refreshInterval: RefreshInterval
+  updateOnOpen: Boolean
+}
+
+"""Effective rules for a series after applying overrides and global settings."""
+type AutomationRules {
+  autoDownload: Boolean!
+  downloadAhead: Int!
+  deleteOnRead: Boolean!
+  deleteDelayHours: Int!
+  maxKeepChapters: Int!
+  pauseUpdates: Boolean!
+  refreshInterval: RefreshInterval!
+}
+
+type MediaAutomation {
+  mediaId: ID!
+  """Overrides; null means the global setting applies."""
+  autoDownload: Boolean
+  downloadAhead: Int
+  deleteOnRead: Boolean
+  deleteDelayHours: Int
+  maxKeepChapters: Int
+  pauseUpdates: Boolean
+  refreshInterval: RefreshInterval
+  effective: AutomationRules!
+}
+
+input MediaAutomationInput {
+  autoDownload: Boolean
+  downloadAhead: Int
+  deleteOnRead: Boolean
+  deleteDelayHours: Int
+  maxKeepChapters: Int
+  pauseUpdates: Boolean
+  refreshInterval: RefreshInterval
 }

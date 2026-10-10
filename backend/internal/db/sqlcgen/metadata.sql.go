@@ -63,7 +63,7 @@ UPDATE media SET
         THEN NULLIF(CAST(?4 AS TEXT), '') ELSE cover_path END,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = ?5
-RETURNING id, extension_id, extension_name, external_id, content_type, title, cover_path, cover_local_path, description, status, author, artist, extension_removed_at, added_at, last_viewed_at, details_fetched_at, updated_at, chapters_synced_at, cover_override, content_block_rank, metadata_search_failed_at
+RETURNING id, extension_id, extension_name, external_id, content_type, title, cover_path, cover_local_path, description, status, author, artist, extension_removed_at, added_at, last_viewed_at, details_fetched_at, updated_at, chapters_synced_at, cover_override, content_block_rank, metadata_search_failed_at, chapters_checked_at
 `
 
 type GapFillMediaMetadataParams struct {
@@ -105,6 +105,7 @@ func (q *Queries) GapFillMediaMetadata(ctx context.Context, arg GapFillMediaMeta
 		&i.CoverOverride,
 		&i.ContentBlockRank,
 		&i.MetadataSearchFailedAt,
+		&i.ChaptersCheckedAt,
 	)
 	return i, err
 }

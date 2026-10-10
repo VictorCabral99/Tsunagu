@@ -980,17 +980,37 @@ func (m *Manager) Reorder(ctx context.Context, chapterID int64, newPosition int6
 	return nil
 }
 
+// DeleteChapters cancels any in-flight download for each chapter, removes its
+// files and drops its download rows.
+func (m *Manager) DeleteChapters(ctx context.Context, chapterIDs []int64) error {
+	if len(chapterIDs) == 0 {
+		return nil
+	}
+	for _, id := range chapterIDs {
+		if err := m.Cancel(ctx, id); err != nil {
+			return fmt.Errorf("cancelling in-flight download %d: %w", id, err)
+		}
+		if err := m.DeleteChapterFiles(ctx, id); err != nil {
+			return fmt.Errorf("deleting chapter files %d: %w", id, err)
+		}
+	}
+	if err := m.q.DeleteDownloadsByChapters(ctx, chapterIDs); err != nil {
+		return fmt.Errorf("deleting download rows: %w", err)
+	}
+	return nil
+}
+
 func (m *Manager) ClearQueue(ctx context.Context) error {
 	return m.q.ClearDownloads(ctx)
 }
 
 func (m *Manager) DeleteChapterFiles(ctx context.Context, chapterID int64) error {
-	dctx, err := m.q.GetChapterDownloadContext(ctx, chapterID)
+	contentType, err := m.q.GetChapterContentType(ctx, chapterID)
 	if err != nil {
-		return fmt.Errorf("resolving chapter context: %w", err)
+		return fmt.Errorf("resolving chapter content type: %w", err)
 	}
 
-	switch dctx.ContentType {
+	switch contentType {
 	case "manga":
 		pages, err := m.q.ListMangaPages(ctx, chapterID)
 		if err != nil {
@@ -1066,7 +1086,7 @@ func (m *Manager) DeleteChapterFiles(ctx context.Context, chapterID int64) error
 		}
 
 	default:
-		return fmt.Errorf("unsupported content type for delete: %s", dctx.ContentType)
+		return fmt.Errorf("unsupported content type for delete: %s", contentType)
 	}
 
 	// The job-history row would otherwise still say status "done" forever,

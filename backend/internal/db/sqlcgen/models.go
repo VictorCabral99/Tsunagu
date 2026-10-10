@@ -21,6 +21,21 @@ type AppSetting struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type AutomationSetting struct {
+	ID                  int64        `json:"id"`
+	Enabled             int64        `json:"enabled"`
+	EnforceGlobal       int64        `json:"enforce_global"`
+	AutoDownload        int64        `json:"auto_download"`
+	DownloadAhead       int64        `json:"download_ahead"`
+	DeleteOnRead        int64        `json:"delete_on_read"`
+	DeleteDelayHours    int64        `json:"delete_delay_hours"`
+	MaxKeepChapters     int64        `json:"max_keep_chapters"`
+	RefreshInterval     string       `json:"refresh_interval"`
+	UpdateOnOpen        int64        `json:"update_on_open"`
+	Configured          int64        `json:"configured"`
+	LastLibraryUpdateAt sql.NullTime `json:"last_library_update_at"`
+}
+
 type Chapter struct {
 	ID          int64           `json:"id"`
 	MediaID     int64           `json:"media_id"`
@@ -105,6 +120,17 @@ type MangaPage struct {
 	LocalPath  sql.NullString `json:"local_path"`
 }
 
+type MediaAutomation struct {
+	MediaID          int64          `json:"media_id"`
+	AutoDownload     sql.NullInt64  `json:"auto_download"`
+	DownloadAhead    sql.NullInt64  `json:"download_ahead"`
+	DeleteOnRead     sql.NullInt64  `json:"delete_on_read"`
+	DeleteDelayHours sql.NullInt64  `json:"delete_delay_hours"`
+	MaxKeepChapters  sql.NullInt64  `json:"max_keep_chapters"`
+	PauseUpdates     sql.NullInt64  `json:"pause_updates"`
+	RefreshInterval  sql.NullString `json:"refresh_interval"`
+}
+
 type MediaFolder struct {
 	MediaID  int64     `json:"media_id"`
 	FolderID int64     `json:"folder_id"`
@@ -144,6 +170,7 @@ type Medium struct {
 	CoverOverride          sql.NullString `json:"cover_override"`
 	ContentBlockRank       sql.NullInt64  `json:"content_block_rank"`
 	MetadataSearchFailedAt sql.NullTime   `json:"metadata_search_failed_at"`
+	ChaptersCheckedAt      sql.NullTime   `json:"chapters_checked_at"`
 }
 
 type MetadataLink struct {
@@ -181,6 +208,11 @@ type Repository struct {
 	ContentType  string         `json:"content_type"`
 	AddedAt      time.Time      `json:"added_at"`
 	LastSyncedAt sql.NullTime   `json:"last_synced_at"`
+}
+
+type ScheduledDeletion struct {
+	ChapterID int64     `json:"chapter_id"`
+	DeleteAt  time.Time `json:"delete_at"`
 }
 
 type Tag struct {

@@ -32,6 +32,7 @@ import (
 	"tsunagu/backend/internal/api/graph"
 	"tsunagu/backend/internal/api/rest"
 	"tsunagu/backend/internal/auth"
+	"tsunagu/backend/internal/automation"
 	"tsunagu/backend/internal/backup"
 	"tsunagu/backend/internal/config"
 	"tsunagu/backend/internal/contentfilter"
@@ -245,6 +246,9 @@ func main() {
 		downloadMgr.SetImageFormat(store.Config().MangaDownloadFormat)
 	})
 
+	automationMgr := automation.New(q, downloadMgr, syncer, supervised)
+	automationMgr.Start(context.Background())
+
 	resolveLocalSourceDir := func() string {
 		d := strings.TrimSpace(store.Config().LocalSourceDir)
 		if d == "" {
@@ -321,7 +325,7 @@ func main() {
 	})
 	authMgr := auth.New(q)
 	registerRoutes(mux, authMgr)
-	registerGraphQL(mux, supervised, syncer, downloadMgr, trackerMgr, metadataMgr, streamResolver, q, authMgr, localScanner)
+	registerGraphQL(mux, supervised, syncer, downloadMgr, automationMgr, trackerMgr, metadataMgr, streamResolver, q, authMgr, localScanner)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
@@ -485,8 +489,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func registerGraphQL(mux *http.ServeMux, sc *sandbox.SupervisedClient, sy *sync.Syncer, dm *download.Manager, tk *tracker.Manager, md *metadata.Manager, sr *streamresolve.Resolver, q *sqlcgen.Queries, am *auth.Manager, ls *localsource.Scanner) {
-	resolver := &graph.Resolver{Sy: sy, Sc: sc, Dm: dm, Ls: ls, Tk: tk, Md: md, Sr: sr, Q: q, DB: globalDB, Fs: globalFsMgr, Cfg: globalStore, Cf: globalCf, Am: am, MediaDir: globalMediaDir, Name: serverName, Version: serverVersion, BuildTime: serverBuildTime}
+func registerGraphQL(mux *http.ServeMux, sc *sandbox.SupervisedClient, sy *sync.Syncer, dm *download.Manager, au *automation.Manager, tk *tracker.Manager, md *metadata.Manager, sr *streamresolve.Resolver, q *sqlcgen.Queries, am *auth.Manager, ls *localsource.Scanner) {
+	resolver := &graph.Resolver{Sy: sy, Sc: sc, Dm: dm, Au: au, Ls: ls, Tk: tk, Md: md, Sr: sr, Q: q, DB: globalDB, Fs: globalFsMgr, Cfg: globalStore, Cf: globalCf, Am: am, MediaDir: globalMediaDir, Name: serverName, Version: serverVersion, BuildTime: serverBuildTime}
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 	srv.Use(extension.FixedComplexityLimit(8000))
 	srv.SetErrorPresenter(sandboxErrorPresenter)

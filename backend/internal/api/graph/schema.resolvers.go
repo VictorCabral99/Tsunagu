@@ -16,6 +16,7 @@ import (
 	"time"
 	"tsunagu/backend/internal/aniskip"
 	"tsunagu/backend/internal/api/graph/model"
+	"tsunagu/backend/internal/automation"
 	"tsunagu/backend/internal/backup"
 	"tsunagu/backend/internal/db/sqlcgen"
 	"tsunagu/backend/internal/image"
@@ -445,12 +446,14 @@ func (r *mutationResolver) MarkChaptersRead(ctx context.Context, mediaID string,
 	if !read {
 		progress = 0.0
 	}
+	marked := make([]int64, 0, len(chapterIds))
 	results := make([]*model.ReadingProgress, 0, len(chapterIds))
 	for _, chapterID := range chapterIds {
 		chID, err := parseID(chapterID)
 		if err != nil {
 			return nil, err
 		}
+		marked = append(marked, chID)
 		row, err := r.Q.UpsertReadingProgress(ctx, sqlcgen.UpsertReadingProgressParams{
 			MediaID:   mID,
 			ChapterID: chID,
@@ -462,6 +465,7 @@ func (r *mutationResolver) MarkChaptersRead(ctx context.Context, mediaID string,
 		}
 		results = append(results, toReadingProgress(row))
 	}
+	r.afterChaptersMarked(mID, marked, read)
 	if read {
 		go r.Tk.SyncMediaProgress(context.Background(), mID)
 	}
@@ -780,6 +784,7 @@ func (r *mutationResolver) UpdateReadingProgress(ctx context.Context, mediaID st
 		return nil, err
 	}
 	if comp {
+		r.afterChaptersMarked(mID, []int64{chID}, true)
 		go r.Tk.SyncMediaProgress(context.Background(), mID)
 	}
 	return toReadingProgress(prog), nil
@@ -798,6 +803,7 @@ func (r *mutationResolver) MarkChapterRead(ctx context.Context, mediaID string, 
 	if err != nil {
 		return nil, err
 	}
+	r.afterChaptersMarked(mID, []int64{chID}, true)
 	go r.Tk.SyncMediaProgress(context.Background(), mID)
 	return toReadingProgress(prog), nil
 }
@@ -869,16 +875,8 @@ func (r *mutationResolver) DeleteDownload(ctx context.Context, mediaID string, c
 		}
 		ids = append(ids, id)
 	}
-	for _, id := range ids {
-		if err := r.Dm.Cancel(ctx, id); err != nil {
-			return false, fmt.Errorf("cancelling in-flight download %d: %w", id, err)
-		}
-		if err := r.Dm.DeleteChapterFiles(ctx, id); err != nil {
-			return false, fmt.Errorf("deleting chapter files %d: %w", id, err)
-		}
-	}
-	if err := r.Q.DeleteDownloadsByChapters(ctx, ids); err != nil {
-		return false, fmt.Errorf("deleting download rows: %w", err)
+	if err := r.Dm.DeleteChapters(ctx, ids); err != nil {
+		return false, err
 	}
 	return true, nil
 }
@@ -1173,7 +1171,7 @@ func (r *mutationResolver) DisableServerAuth(ctx context.Context) (bool, error) 
 	return true, nil
 }
 
-func (r *mutationResolver) StartLibraryUpdate(ctx context.Context, folderID *string) (bool, error) {
+func (r *mutationResolver) StartLibraryUpdate(ctx context.Context, folderID *string, trigger *model.LibraryUpdateTrigger) (bool, error) {
 	var fid *int64
 	if folderID != nil {
 		id, err := parseID(*folderID)
@@ -1182,7 +1180,41 @@ func (r *mutationResolver) StartLibraryUpdate(ctx context.Context, folderID *str
 		}
 		fid = &id
 	}
-	return r.Sy.StartLibraryUpdate(r.Sc, fid)
+	t := automation.TriggerManual
+	if trigger != nil && *trigger == model.LibraryUpdateTriggerAppOpen {
+		t = automation.TriggerAppOpen
+	}
+	if r.Au == nil {
+		ids, err := r.Sy.LibraryUpdateTargets(ctx, fid)
+		if err != nil {
+			return false, err
+		}
+		return r.Sy.StartLibraryUpdate(r.Sc, ids), nil
+	}
+	return r.Au.StartLibraryUpdate(ctx, fid, t)
+}
+
+func (r *mutationResolver) UpdateAutomationSettings(ctx context.Context, input model.AutomationSettingsInput) (*model.AutomationSettings, error) {
+	return r.updateAutomationSettings(ctx, input)
+}
+
+func (r *mutationResolver) SetMediaAutomation(ctx context.Context, mediaID string, input model.MediaAutomationInput) (*model.MediaAutomation, error) {
+	id, err := parseID(mediaID)
+	if err != nil {
+		return nil, err
+	}
+	return r.setMediaAutomation(ctx, id, input)
+}
+
+func (r *mutationResolver) ResetMediaAutomation(ctx context.Context, mediaID *string) (bool, error) {
+	if mediaID == nil {
+		return true, r.Q.DeleteAllMediaAutomation(ctx)
+	}
+	id, err := parseID(*mediaID)
+	if err != nil {
+		return false, err
+	}
+	return true, r.Q.DeleteMediaAutomation(ctx, id)
 }
 
 func (r *mutationResolver) SetMediaCover(ctx context.Context, mediaID string, url *string) (*model.Media, error) {
@@ -1465,6 +1497,26 @@ func (r *mutationResolver) RefreshMetadataMatch(ctx context.Context, mediaID str
 		updated = m
 	}
 	return toMedia(updated, r.MediaDir), nil
+}
+
+func (r *queryResolver) AutomationSettings(ctx context.Context) (*model.AutomationSettings, error) {
+	s, err := r.Q.GetAutomationSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toAutomationSettings(s), nil
+}
+
+func (r *queryResolver) MediaAutomation(ctx context.Context, mediaID string) (*model.MediaAutomation, error) {
+	id, err := parseID(mediaID)
+	if err != nil {
+		return nil, err
+	}
+	return r.mediaAutomation(ctx, id)
+}
+
+func (r *queryResolver) MediaAutomationOverrides(ctx context.Context) ([]*model.MediaAutomation, error) {
+	return r.mediaAutomationOverrides(ctx)
 }
 
 func (r *queryResolver) About(ctx context.Context) (*model.AboutServer, error) {
