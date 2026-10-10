@@ -33,6 +33,7 @@ type SupervisedClient struct {
 
 	mu         sync.Mutex
 	cmd        *exec.Cmd
+	exited     chan struct{} // closed once cmd has been reaped
 	client     *Client
 	lastAccess time.Time
 
@@ -77,6 +78,10 @@ func (sc *SupervisedClient) Ensure(ctx context.Context) (*Client, error) {
 	if sc.client != nil && sc.processAlive() {
 		return sc.client, nil
 	}
+	if sc.cmd != nil {
+		log.Printf("sandbox: process exited unexpectedly, respawning")
+		sc.killLocked()
+	}
 
 	if sc.cmd == nil {
 		if client, err := NewClient(sc.addr); err == nil {
@@ -105,8 +110,10 @@ func (sc *SupervisedClient) processAlive() bool {
 	if sc.cmd == nil || sc.cmd.Process == nil {
 		return false
 	}
-	if sc.cmd.ProcessState != nil {
+	select {
+	case <-sc.exited:
 		return false
+	default:
 	}
 	return processAlive(sc.cmd)
 }
@@ -182,7 +189,15 @@ func (sc *SupervisedClient) spawnLocked() error {
 	}
 	_ = os.MkdirAll(sc.storageDir, 0o755)
 	_ = os.WriteFile(sc.pidFile(), []byte(strconv.Itoa(cmd.Process.Pid)), 0o644)
+	// Reap immediately: an unreaped child stays a zombie, which still answers
+	// signal 0 and would make processAlive report a crashed sandbox as healthy.
+	exited := make(chan struct{})
+	go func() {
+		_ = cmd.Wait()
+		close(exited)
+	}()
 	sc.cmd = cmd
+	sc.exited = exited
 	return nil
 }
 
@@ -253,9 +268,10 @@ func (sc *SupervisedClient) killLocked() {
 	}
 	if sc.cmd != nil && sc.cmd.Process != nil {
 		_ = sc.cmd.Process.Kill()
-		_ = sc.cmd.Wait()
+		<-sc.exited
 	}
 	sc.cmd = nil
+	sc.exited = nil
 	_ = os.Remove(sc.pidFile())
 }
 

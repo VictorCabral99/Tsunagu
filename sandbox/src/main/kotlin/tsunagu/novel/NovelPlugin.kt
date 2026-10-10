@@ -76,6 +76,12 @@ class NovelPlugin(
         val method = pluginValue.getMember(methodName)
             ?: throw NovelPluginException("$id: plugin has no method $methodName")
         val box = callAsync.execute(method, pluginValue, args.toList().toTypedArray())
+        val bindings = context.getBindings("js")
+        val runNextTimer = bindings.getMember("__runNextTimer")
+        while (!box.getMember("done").asBoolean() && runNextTimer.execute().asBoolean()) {
+            // each pass fires the earliest timer; its microtasks drain when execute returns
+        }
+        bindings.getMember("__clearTimers").execute()
         if (!box.getMember("done").asBoolean()) {
             throw NovelPluginException(
                 "$id: $methodName did not resolve synchronously " +

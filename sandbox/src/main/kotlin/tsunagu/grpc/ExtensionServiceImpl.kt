@@ -22,6 +22,7 @@ import tsunagu.loader.ContentType
 import tsunagu.loader.ExtensionLoader
 import tsunagu.loader.LoadedExtension
 import tsunagu.novel.ChapterItem
+import tsunagu.novel.NovelJsBridge
 import tsunagu.novel.NovelPlugin
 import tsunagu.novel.SourceNovel
 import tsunagu.grpc.AnimeFilterSerde
@@ -557,6 +558,7 @@ class ExtensionServiceImpl(
         val (client, headers) = when (val s = extension.source) {
             is HttpSource -> s.client to s.headers
             is AnimeHttpSource -> s.client to s.headers
+            is NovelPlugin -> NovelJsBridge.client to okhttp3.Headers.headersOf("Referer", s.site)
             else -> {
                 responseObserver.onError(internal(IllegalStateException("extension ${request.extensionId} has no HTTP client")))
                 return

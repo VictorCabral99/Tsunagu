@@ -23,7 +23,7 @@ import org.jsoup.nodes.TextNode
 
 object NovelJsBridge {
 
-    private val client =
+    internal val client =
         OkHttpClient.Builder()
             .dns(buildSandboxDns(System.getenv("SANDBOX_DOH") ?: "off"))
             .build()
@@ -38,6 +38,245 @@ object NovelJsBridge {
         }
     """
 
+    // Web globals LNReader plugins expect from React Native that GraalJS lacks.
+    // Plugin calls run synchronously (fetch blocks), so timers sleep on the host
+    // and then fire as a microtask; there is no event loop to defer to.
+    const val WEB_GLUE = """
+        (function (g) {
+            function enc(s) { return encodeURIComponent(s).replace(/%20/g, '+'); }
+            function dec(s) { return decodeURIComponent(String(s).replace(/\+/g, ' ')); }
+
+            function URLSearchParams(init) {
+                var self = this;
+                this._entries = [];
+                if (init == null) return;
+                if (typeof init === 'string') {
+                    init.replace(/^\?/, '').split('&').forEach(function (pair) {
+                        if (!pair) return;
+                        var i = pair.indexOf('=');
+                        self._entries.push(i >= 0 ? [dec(pair.slice(0, i)), dec(pair.slice(i + 1))] : [dec(pair), '']);
+                    });
+                } else if (init instanceof URLSearchParams) {
+                    this._entries = init._entries.map(function (p) { return [p[0], p[1]]; });
+                } else if (Array.isArray(init)) {
+                    init.forEach(function (p) { self._entries.push([String(p[0]), String(p[1])]); });
+                } else if (typeof init === 'object') {
+                    Object.keys(init).forEach(function (k) { self._entries.push([k, String(init[k])]); });
+                }
+            }
+            URLSearchParams.prototype.append = function (k, v) { this._entries.push([String(k), String(v)]); };
+            URLSearchParams.prototype.set = function (k, v) {
+                k = String(k);
+                var i = this._entries.findIndex(function (p) { return p[0] === k; });
+                this.delete(k);
+                if (i < 0 || i > this._entries.length) i = this._entries.length;
+                this._entries.splice(i, 0, [k, String(v)]);
+            };
+            URLSearchParams.prototype.get = function (k) {
+                var e = this._entries.find(function (p) { return p[0] === String(k); });
+                return e ? e[1] : null;
+            };
+            URLSearchParams.prototype.getAll = function (k) {
+                return this._entries.filter(function (p) { return p[0] === String(k); }).map(function (p) { return p[1]; });
+            };
+            URLSearchParams.prototype.has = function (k) { return this.get(k) !== null; };
+            URLSearchParams.prototype.delete = function (k) { this._entries = this._entries.filter(function (p) { return p[0] !== String(k); }); };
+            URLSearchParams.prototype.forEach = function (cb, thisArg) {
+                var self = this;
+                this._entries.forEach(function (p) { cb.call(thisArg, p[1], p[0], self); });
+            };
+            URLSearchParams.prototype.entries = function () { return this._entries.map(function (p) { return [p[0], p[1]]; })[Symbol.iterator](); };
+            URLSearchParams.prototype.keys = function () { return this._entries.map(function (p) { return p[0]; })[Symbol.iterator](); };
+            URLSearchParams.prototype.values = function () { return this._entries.map(function (p) { return p[1]; })[Symbol.iterator](); };
+            URLSearchParams.prototype[Symbol.iterator] = URLSearchParams.prototype.entries;
+            URLSearchParams.prototype.toString = function () {
+                return this._entries.map(function (p) { return enc(p[0]) + '=' + enc(p[1]); }).join('&');
+            };
+            Object.defineProperty(URLSearchParams.prototype, 'size', { get: function () { return this._entries.length; } });
+
+            var ABS = /^([a-zA-Z][a-zA-Z0-9+.-]*):(?:\/\/(?:([^\/?#@]*)@)?([^\/?#:]*|\[[^\]]*\])(?::(\d*))?)?([^?#]*)(\?[^#]*)?(#.*)?$/;
+            var DEFAULT_PORT = { 'http:': '80', 'https:': '443', 'ws:': '80', 'wss:': '443', 'ftp:': '21' };
+
+            function removeDots(path) {
+                var out = [];
+                var segs = path.split('/');
+                for (var i = 0; i < segs.length; i++) {
+                    var s = segs[i];
+                    if (s === '..') { if (out.length > 1) out.pop(); if (i === segs.length - 1) out.push(''); }
+                    else if (s === '.') { if (i === segs.length - 1) out.push(''); }
+                    else out.push(s);
+                }
+                return out.join('/');
+            }
+
+            function parse(input) {
+                var m = ABS.exec(String(input).trim());
+                if (!m) return null;
+                var protocol = m[1].toLowerCase() + ':';
+                var special = protocol in DEFAULT_PORT || protocol === 'file:';
+                var path = m[5] || '';
+                if (special && m[3] !== undefined) path = removeDots(path.replace(/\\/g, '/') || '/');
+                var port = m[4] || '';
+                if (DEFAULT_PORT[protocol] === port) port = '';
+                return {
+                    protocol: protocol,
+                    hasAuthority: m[3] !== undefined,
+                    username: m[2] ? m[2].split(':')[0] : '',
+                    password: m[2] && m[2].indexOf(':') >= 0 ? m[2].slice(m[2].indexOf(':') + 1) : '',
+                    hostname: (m[3] || '').toLowerCase(),
+                    port: port,
+                    pathname: path.replace(/ /g, '%20'),
+                    search: m[6] && m[6].length > 1 ? m[6] : '',
+                    hash: m[7] && m[7].length > 1 ? m[7] : '',
+                };
+            }
+
+            function resolve(ref, base) {
+                ref = String(ref).trim();
+                if (ABS.test(ref) && /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(ref)) return parse(ref);
+                var b = parse(base);
+                if (!b) return null;
+                var r = { protocol: b.protocol, hasAuthority: b.hasAuthority, username: b.username, password: b.password,
+                          hostname: b.hostname, port: b.port, pathname: b.pathname, search: b.search, hash: '' };
+                var m = /^([^?#]*)(\?[^#]*)?(#.*)?$/.exec(ref);
+                var path = m[1], search = m[2], hash = m[3];
+                if (path.indexOf('//') === 0) return parse(b.protocol + ref);
+                if (path === '') {
+                    if (search !== undefined) r.search = search.length > 1 ? search : '';
+                } else {
+                    if (path.charAt(0) === '/') r.pathname = removeDots(path);
+                    else r.pathname = removeDots(b.pathname.replace(/[^\/]*$/, '') + path);
+                    r.search = search && search.length > 1 ? search : '';
+                }
+                r.pathname = r.pathname.replace(/ /g, '%20');
+                r.hash = hash && hash.length > 1 ? hash : '';
+                return r;
+            }
+
+            function URL(url, base) {
+                var p = base === undefined || base === null ? parse(url) : resolve(url, base instanceof URL ? base.href : base);
+                if (!p) throw new TypeError('Invalid URL: ' + url);
+                this._p = p;
+                this._sp = new URLSearchParams(p.search);
+                var self = this;
+                var sync = function () { var s = URLSearchParams.prototype.toString.call(self._sp); self._p.search = s ? '?' + s : ''; };
+                ['append', 'set', 'delete'].forEach(function (k) {
+                    self._sp[k] = function () { URLSearchParams.prototype[k].apply(self._sp, arguments); sync(); };
+                });
+            }
+            function prop(name, get, set) { Object.defineProperty(URL.prototype, name, { get: get, set: set, enumerable: true }); }
+            prop('protocol', function () { return this._p.protocol; }, function (v) { this._p.protocol = String(v).replace(/:?$/, ':'); });
+            prop('username', function () { return this._p.username; });
+            prop('password', function () { return this._p.password; });
+            prop('hostname', function () { return this._p.hostname; }, function (v) { this._p.hostname = String(v); });
+            prop('port', function () { return this._p.port; }, function (v) { this._p.port = String(v); });
+            prop('host', function () { return this._p.hostname + (this._p.port ? ':' + this._p.port : ''); });
+            prop('origin', function () { return this._p.hasAuthority ? this._p.protocol + '//' + this.host : 'null'; });
+            prop('pathname', function () { return this._p.pathname; }, function (v) { v = String(v); this._p.pathname = v.charAt(0) === '/' ? v : '/' + v; });
+            prop('search', function () { return this._p.search; }, function (v) {
+                v = String(v).replace(/^\?/, '');
+                this._p.search = v ? '?' + v : '';
+                this._sp._entries = new URLSearchParams(v)._entries;
+            });
+            prop('hash', function () { return this._p.hash; }, function (v) { v = String(v).replace(/^#/, ''); this._p.hash = v ? '#' + v : ''; });
+            prop('searchParams', function () { return this._sp; });
+            prop('href', function () {
+                var p = this._p;
+                var auth = p.username ? p.username + (p.password ? ':' + p.password : '') + '@' : '';
+                return p.protocol + (p.hasAuthority ? '//' + auth + this.host : '') + p.pathname + p.search + p.hash;
+            }, function (v) { var n = new URL(v); this._p = n._p; this._sp._entries = n._sp._entries; });
+            URL.prototype.toString = function () { return this.href; };
+            URL.prototype.toJSON = function () { return this.href; };
+            URL.canParse = function (u, b) { try { new URL(u, b); return true; } catch (e) { return false; } };
+
+            function Headers(init) {
+                var self = this;
+                if (init == null) return;
+                if (Array.isArray(init)) init.forEach(function (p) { self.append(p[0], p[1]); });
+                else Object.keys(init).forEach(function (k) { self.append(k, init[k]); });
+            }
+            // Headers live as own enumerable props so fetch's init.headers handling reads them like a plain object.
+            function hdef(name, fn) { Object.defineProperty(Headers.prototype, name, { value: fn, enumerable: false }); }
+            hdef('_key', function (k) {
+                k = String(k).toLowerCase();
+                return Object.keys(this).find(function (x) { return x.toLowerCase() === k; });
+            });
+            hdef('get', function (k) { var x = this._key(k); return x === undefined ? null : this[x]; });
+            hdef('has', function (k) { return this._key(k) !== undefined; });
+            hdef('set', function (k, v) { var x = this._key(k); if (x !== undefined) delete this[x]; this[String(k)] = String(v); });
+            hdef('append', function (k, v) { var x = this._key(k); if (x !== undefined) this[x] = this[x] + ', ' + v; else this[String(k)] = String(v); });
+            hdef('delete', function (k) { var x = this._key(k); if (x !== undefined) delete this[x]; });
+            hdef('forEach', function (cb, t) { var s = this; Object.keys(s).forEach(function (k) { cb.call(t, s[k], k.toLowerCase(), s); }); });
+            hdef('entries', function () { var s = this; return Object.keys(s).map(function (k) { return [k.toLowerCase(), s[k]]; })[Symbol.iterator](); });
+            hdef(Symbol.iterator, Headers.prototype.entries);
+
+            function utf8Encode(s) {
+                var out = [];
+                for (var i = 0; i < s.length; i++) {
+                    var c = s.codePointAt(i);
+                    if (c > 0xffff) i++;
+                    if (c < 0x80) out.push(c);
+                    else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+                    else if (c < 0x10000) out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+                    else out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+                }
+                return new Uint8Array(out);
+            }
+            function utf8Decode(b) {
+                b = b instanceof ArrayBuffer ? new Uint8Array(b) : (ArrayBuffer.isView(b) ? new Uint8Array(b.buffer, b.byteOffset, b.byteLength) : new Uint8Array(b || []));
+                var s = '', i = 0;
+                while (i < b.length) {
+                    var c = b[i++], cp;
+                    if (c < 0x80) cp = c;
+                    else if (c < 0xe0) cp = ((c & 31) << 6) | (b[i++] & 63);
+                    else if (c < 0xf0) cp = ((c & 15) << 12) | ((b[i++] & 63) << 6) | (b[i++] & 63);
+                    else cp = ((c & 7) << 18) | ((b[i++] & 63) << 12) | ((b[i++] & 63) << 6) | (b[i++] & 63);
+                    s += String.fromCodePoint(cp);
+                }
+                return s;
+            }
+            function TextEncoder() {}
+            TextEncoder.prototype.encoding = 'utf-8';
+            TextEncoder.prototype.encode = function (s) { return utf8Encode(String(s === undefined ? '' : s)); };
+            function TextDecoder() {}
+            TextDecoder.prototype.encoding = 'utf-8';
+            TextDecoder.prototype.decode = function (b) { return utf8Decode(b); };
+
+            // Timers queue up and are drained by the host (NovelPlugin.callMethod) only
+            // while a call is still pending, so sleeps and timeout races both behave.
+            var timers = [], timerId = 0;
+            g.setTimeout = function (fn, ms) {
+                var id = ++timerId;
+                timers.push({ id: id, fn: fn, args: Array.prototype.slice.call(arguments, 2), due: Date.now() + (+ms || 0) });
+                return id;
+            };
+            g.clearTimeout = function (id) { timers = timers.filter(function (t) { return t.id !== id; }); };
+            g.__runNextTimer = function () {
+                if (!timers.length) return false;
+                timers.sort(function (a, b) { return a.due - b.due || a.id - b.id; });
+                var t = timers.shift();
+                var wait = t.due - Date.now();
+                if (wait > 0) __hostSleep(wait);
+                if (typeof t.fn === 'function') t.fn.apply(null, t.args);
+                return true;
+            };
+            g.__clearTimers = function () { timers = []; };
+
+            g.URLSearchParams = URLSearchParams;
+            g.URL = URL;
+            if (typeof g.Headers === 'undefined') g.Headers = Headers;
+            if (typeof g.TextEncoder === 'undefined') g.TextEncoder = TextEncoder;
+            if (typeof g.TextDecoder === 'undefined') g.TextDecoder = TextDecoder;
+        })(globalThis);
+    """
+
+    /** Backs setTimeout's delay; capped so a plugin can't stall a gRPC call indefinitely. */
+    val hostSleep: ProxyExecutable = ProxyExecutable { args ->
+        val ms = args.getOrNull(0)?.takeIf { it.isNumber }?.asDouble()?.toLong() ?: 0L
+        if (ms > 0) Thread.sleep(ms.coerceAtMost(10_000))
+        null
+    }
+
     fun requireFn(storageNamespace: String, wrapPromise: Value): ProxyExecutable = ProxyExecutable { args ->
         when (args[0].asString()) {
             "cheerio" -> cheerioModule()
@@ -45,7 +284,7 @@ object NovelJsBridge {
             "@libs/fetch" -> fetchModule(wrapPromise)
             "@libs/novelStatus" -> novelStatusModule()
             "@libs/isAbsoluteUrl" -> isAbsoluteUrlModule()
-            "@libs/defaultCover" -> defaultCoverModule()
+            "@libs/defaultCover", "@/types/constants" -> defaultCoverModule()
             "@libs/utils" -> utilsModule()
             "@libs/filterInputs" -> filterInputsModule()
             "@libs/storage" -> storageModule(storageNamespace)
@@ -159,14 +398,7 @@ object NovelJsBridge {
     }
 
     private fun cheerioModule(): ProxyObject = ProxyObject.fromMap(mapOf(
-        "load" to ProxyExecutable { args ->
-            val doc = Jsoup.parse(args[0].asString())
-            ProxyExecutable { selArgs ->
-                val arg = selArgs.getOrNull(0)
-                if (arg != null && arg.hasMember("find")) arg
-                else CheerioSelection(doc.select(arg?.asString() ?: ""))
-            }
-        },
+        "load" to ProxyExecutable { args -> CheerioRoot.load(args) },
     ))
 
     private val VOID_ELEMENTS = setOf(
@@ -324,6 +556,9 @@ object NovelJsBridge {
             },
             "delete" to ProxyExecutable { args -> PluginStorage.delete(storageNamespace, args[0].asString()); null },
         )),
+        // In LNReader these snapshot the site's WebView storage; there is no WebView here.
+        "localStorage" to ProxyObject.fromMap(mapOf("get" to ProxyExecutable { null })),
+        "sessionStorage" to ProxyObject.fromMap(mapOf("get" to ProxyExecutable { null })),
     ))
 
     private fun Value.jsValueToKotlin(): Any? = when {
