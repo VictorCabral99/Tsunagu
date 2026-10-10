@@ -26,7 +26,6 @@ import tsunagu.novel.NovelJsBridge
 import tsunagu.novel.NovelPlugin
 import tsunagu.novel.SourceNovel
 import tsunagu.grpc.AnimeFilterSerde
-import tsunagu.util.awaitSingle
 import tsunagu.grpc.FilterSerde.applyTo
 import tsunagu.grpc.FilterSerde.toProto
 import tsunagu.registry.ExtensionRegistry
@@ -263,7 +262,7 @@ class ExtensionServiceImpl(
             val builder = Sandbox.SearchResponse.newBuilder()
             when (val source = extension.source) {
                 is HttpSource -> {
-                    val page = runBlocking { source.fetchPopularManga(request.page).awaitSingle() }
+                    val page = runBlocking { source.getPopularManga(request.page) }
                     builder.setHasNextPage(page.hasNextPage)
                     page.mangas.forEach { manga ->
                         EntryModelCache.putManga(request.extensionId, manga)
@@ -271,7 +270,7 @@ class ExtensionServiceImpl(
                     }
                 }
                 is AnimeHttpSource -> {
-                    val page = runBlocking { source.fetchPopularAnime(request.page).awaitSingle() }
+                    val page = runBlocking { source.getPopularAnime(request.page) }
                     builder.setHasNextPage(page.hasNextPage)
                     page.animes.forEach { anime ->
                         EntryModelCache.putAnime(request.extensionId, anime)
@@ -325,7 +324,7 @@ class ExtensionServiceImpl(
             val builder = Sandbox.SearchResponse.newBuilder()
             when (val source = extension.source) {
                 is HttpSource -> {
-                    val page = runBlocking { source.fetchLatestUpdates(request.page).awaitSingle() }
+                    val page = runBlocking { source.getLatestUpdates(request.page) }
                     builder.setHasNextPage(page.hasNextPage)
                     page.mangas.forEach { manga ->
                         EntryModelCache.putManga(request.extensionId, manga)
@@ -333,7 +332,7 @@ class ExtensionServiceImpl(
                     }
                 }
                 is AnimeHttpSource -> {
-                    val page = runBlocking { source.fetchLatestUpdates(request.page).awaitSingle() }
+                    val page = runBlocking { source.getLatestUpdates(request.page) }
                     builder.setHasNextPage(page.hasNextPage)
                     page.animes.forEach { anime ->
                         EntryModelCache.putAnime(request.extensionId, anime)
