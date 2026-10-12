@@ -528,7 +528,7 @@ class ExtensionServiceImpl(
     ) {
         handleAnime(responseObserver, request.extensionId) { source ->
             val episode: SEpisode = episodeStub(request.extensionId, request.sourceEpisodeId)
-            val videos = runBlocking { source.getVideoList(episode) }
+            val videos = runBlocking { AnimeVideoLoader.loadVideos(source, episode) }
             if (videos.isEmpty()) {
                 throw IllegalStateException("no videos returned for episode ${request.sourceEpisodeId}")
             }
@@ -832,10 +832,10 @@ class ExtensionServiceImpl(
         preferred.timestamps.forEach { ts ->
             builder.addTimestamps(
                 Sandbox.SkipTimestamp.newBuilder()
-                    .setStartMs(ts.start)
-                    .setEndMs(ts.end)
+                    .setStartMs((ts.start * 1000).toLong())
+                    .setEndMs((ts.end * 1000).toLong())
                     .setName(ts.name)
-                    .setType(ts.type.name)
+                    .setType(ts.type.name.uppercase())
                     .build(),
             )
         }
