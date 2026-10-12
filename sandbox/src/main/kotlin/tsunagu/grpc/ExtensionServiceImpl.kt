@@ -174,13 +174,10 @@ class ExtensionServiceImpl(
             responseObserver.onNext(Sandbox.SearchResponse.newBuilder().setHasNextPage(false).build())
             responseObserver.onCompleted()
         } catch (e: Throwable) {
+            // Classified like every other call so callers can tell "no results"
+            // from "source blocked by Cloudflare / offline".
             logExtensionFailure(e)
-            if (SourceErrors.isExpected(e)) {
-                responseObserver.onNext(Sandbox.SearchResponse.newBuilder().setHasNextPage(false).build())
-                responseObserver.onCompleted()
-            } else {
-                responseObserver.onError(internal(e))
-            }
+            responseObserver.onError(internal(e))
         }
     }
 
