@@ -456,6 +456,7 @@ type malListPage struct {
 			NumChaptersRead float64 `json:"num_chapters_read"`
 			IsRereading     bool    `json:"is_rereading"`
 			IsRewatching    bool    `json:"is_rewatching"`
+			UpdatedAt       string  `json:"updated_at"`
 		} `json:"list_status"`
 	} `json:"data"`
 	Paging struct {
@@ -517,6 +518,7 @@ func (m *MAL) ListLibrary(ctx context.Context, a Auth, contentType string, statu
 				MediaType:     strings.ToUpper(kind),
 				URL:           fmt.Sprintf("https://myanimelist.net/%s/%d", kind, n.ID),
 				TotalChapters: total,
+				UpdatedAt:     parseMALTimestamp(ls.UpdatedAt),
 			})
 		}
 		next = strings.TrimPrefix(out.Paging.Next, malAPI)
@@ -566,6 +568,14 @@ func canonicalToMALStatus(s Status, kind string) string {
 		}
 		return "plan_to_read"
 	}
+}
+
+func parseMALTimestamp(s string) time.Time {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return time.Time{}
+	}
+	return t.UTC()
 }
 
 func parseMALDate(s string) *time.Time {

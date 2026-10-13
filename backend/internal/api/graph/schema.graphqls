@@ -210,6 +210,10 @@ type TrackerLibraryEntry {
   mediaType: String
   url: String
   totalChapters: Int
+  """Unix seconds of the user's last change to the entry."""
+  updatedAt: Int
+  """MyAnimeList id of an AniList entry."""
+  malId: Int
 }
 
 type TrackLink {

@@ -33,7 +33,7 @@ func TestMALListLibraryPages(t *testing.T) {
 		if r.URL.Query().Get("offset") == "" {
 			fmt.Fprintf(w, `{"data":[
 				{"node":{"id":52991,"title":"Sousou no Frieren","num_episodes":28,"main_picture":{"large":"https://cdn/f.jpg"},"alternative_titles":{"en":"Frieren: Beyond Journey's End"}},
-				 "list_status":{"status":"completed","score":10,"num_episodes_watched":28}},
+				 "list_status":{"status":"completed","score":10,"num_episodes_watched":28,"updated_at":"2024-03-01T12:00:00+00:00"}},
 				{"node":{"id":1,"title":"Cowboy Bebop","num_episodes":26},
 				 "list_status":{"status":"watching","score":0,"num_episodes_watched":5,"is_rewatching":true}}
 			],"paging":{"next":"%s/users/@me/animelist?offset=500&limit=500"}}`, malAPI)
@@ -58,6 +58,9 @@ func TestMALListLibraryPages(t *testing.T) {
 	if f.RemoteID != "anime:52991" || f.Status != "completed" || f.Progress != 28 || f.Score != 10 || f.TotalChapters != 28 ||
 		f.TitleEnglish != "Frieren: Beyond Journey's End" || f.CoverURL != "https://cdn/f.jpg" || f.URL != "https://myanimelist.net/anime/52991" {
 		t.Errorf("frieren = %+v", f)
+	}
+	if f.UpdatedAt.Unix() != 1709294400 {
+		t.Errorf("updatedAt = %v", f.UpdatedAt)
 	}
 	if entries[1].Status != "rewatching" {
 		t.Errorf("rereading flag should become rewatching, got %q", entries[1].Status)

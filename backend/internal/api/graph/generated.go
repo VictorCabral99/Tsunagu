@@ -609,6 +609,7 @@ type ComplexityRoot struct {
 
 	TrackerLibraryEntry struct {
 		CoverURL      func(childComplexity int) int
+		MalID         func(childComplexity int) int
 		MediaType     func(childComplexity int) int
 		Progress      func(childComplexity int) int
 		RemoteID      func(childComplexity int) int
@@ -619,6 +620,7 @@ type ComplexityRoot struct {
 		TitleRomaji   func(childComplexity int) int
 		TotalChapters func(childComplexity int) int
 		URL           func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
 	}
 
 	TriStateFilter struct {
@@ -3841,6 +3843,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.TrackerLibraryEntry.CoverURL(childComplexity), true
+	case "TrackerLibraryEntry.malId":
+		if e.ComplexityRoot.TrackerLibraryEntry.MalID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrackerLibraryEntry.MalID(childComplexity), true
 	case "TrackerLibraryEntry.mediaType":
 		if e.ComplexityRoot.TrackerLibraryEntry.MediaType == nil {
 			break
@@ -3901,6 +3909,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.TrackerLibraryEntry.URL(childComplexity), true
+	case "TrackerLibraryEntry.updatedAt":
+		if e.ComplexityRoot.TrackerLibraryEntry.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrackerLibraryEntry.UpdatedAt(childComplexity), true
 
 	case "TriStateFilter.name":
 		if e.ComplexityRoot.TriStateFilter.Name == nil {
@@ -4947,6 +4961,10 @@ func (ec *executionContext) childFields_TrackerLibraryEntry(ctx context.Context,
 		return ec.fieldContext_TrackerLibraryEntry_url(ctx, field)
 	case "totalChapters":
 		return ec.fieldContext_TrackerLibraryEntry_totalChapters(ctx, field)
+	case "updatedAt":
+		return ec.fieldContext_TrackerLibraryEntry_updatedAt(ctx, field)
+	case "malId":
+		return ec.fieldContext_TrackerLibraryEntry_malId(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type TrackerLibraryEntry", field.Name)
 }
@@ -19275,6 +19293,52 @@ func (ec *executionContext) fieldContext_TrackerLibraryEntry_totalChapters(_ con
 	return graphql.NewScalarFieldContext("TrackerLibraryEntry", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
+func (ec *executionContext) _TrackerLibraryEntry_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.TrackerLibraryEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrackerLibraryEntry_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_TrackerLibraryEntry_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrackerLibraryEntry", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _TrackerLibraryEntry_malId(ctx context.Context, field graphql.CollectedField, obj *model.TrackerLibraryEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrackerLibraryEntry_malId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MalID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_TrackerLibraryEntry_malId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrackerLibraryEntry", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
 func (ec *executionContext) _TriStateFilter_name(ctx context.Context, field graphql.CollectedField, obj *model.TriStateFilter) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -26853,6 +26917,16 @@ func (ec *executionContext) _TrackerLibraryEntry(ctx context.Context, sel ast.Se
 			}
 		case "totalChapters":
 			out.Values[i] = ec._TrackerLibraryEntry_totalChapters(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._TrackerLibraryEntry_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "malId":
+			out.Values[i] = ec._TrackerLibraryEntry_malId(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}

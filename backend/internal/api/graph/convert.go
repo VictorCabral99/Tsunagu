@@ -217,6 +217,14 @@ func toTrackerLibraryEntry(e tracker.LibraryEntry) *model.TrackerLibraryEntry {
 		v := int32(e.TotalChapters)
 		m.TotalChapters = &v
 	}
+	if !e.UpdatedAt.IsZero() {
+		v := int32(e.UpdatedAt.Unix())
+		m.UpdatedAt = &v
+	}
+	if e.MalID > 0 {
+		v := int32(e.MalID)
+		m.MalID = &v
+	}
 	return m
 }
 

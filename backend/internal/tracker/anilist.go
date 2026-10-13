@@ -135,6 +135,7 @@ func (a *AniList) Exchange(ctx context.Context, pasted string) (Auth, error) {
 
 type alMedia struct {
 	ID       int    `json:"id"`
+	IDMal    int    `json:"idMal"`
 	SiteURL  string `json:"siteUrl"`
 	Chapters int    `json:"chapters"`
 	Episodes int    `json:"episodes"`
@@ -266,8 +267,16 @@ type alMediaListEntryItem struct {
 	ID       int     `json:"id"`
 	Status   string  `json:"status"`
 	Score    float64 `json:"score"`
-	Progress float64 `json:"progress"`
-	Media    alMedia `json:"media"`
+	Progress  float64 `json:"progress"`
+	UpdatedAt int64   `json:"updatedAt"`
+	Media     alMedia `json:"media"`
+}
+
+func unixTime(sec int64) time.Time {
+	if sec <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(sec, 0).UTC()
 }
 
 type alMediaListGroup struct {
@@ -294,8 +303,10 @@ const alListCollectionDoc = `query($userName: String, $type: MediaType, $statusI
         status
         score
         progress
+        updatedAt
         media {
           id
+          idMal
           siteUrl
           chapters
           episodes
@@ -397,6 +408,8 @@ func (a *AniList) ListLibrary(ctx context.Context, auth Auth, contentType string
 					MediaType:     item.Media.Type,
 					URL:           item.Media.SiteURL,
 					TotalChapters: totalCount,
+					UpdatedAt:     unixTime(item.UpdatedAt),
+					MalID:         item.Media.IDMal,
 				})
 			}
 		}

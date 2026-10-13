@@ -102,6 +102,10 @@ type LibraryEntry struct {
 	MediaType     string
 	URL           string
 	TotalChapters int
+	// UpdatedAt is when the user last changed the entry (zero if unknown).
+	UpdatedAt time.Time
+	// MalID is the MyAnimeList id of an AniList entry (zero if unknown).
+	MalID int
 }
 
 type Service interface {

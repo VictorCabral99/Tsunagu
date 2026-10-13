@@ -566,6 +566,10 @@ type TrackerLibraryEntry struct {
 	MediaType     *string `json:"mediaType,omitempty"`
 	URL           *string `json:"url,omitempty"`
 	TotalChapters *int32  `json:"totalChapters,omitempty"`
+	// Unix seconds of the user's last change to the entry.
+	UpdatedAt *int32 `json:"updatedAt,omitempty"`
+	// MyAnimeList id of an AniList entry.
+	MalID *int32 `json:"malId,omitempty"`
 }
 
 type TriStateFilter struct {
