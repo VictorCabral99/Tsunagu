@@ -366,6 +366,7 @@ type ComplexityRoot struct {
 		SetMediaCover              func(childComplexity int, mediaID string, url *string) int
 		SetPassword                func(childComplexity int, newPassword string) int
 		SetSourcePreference        func(childComplexity int, extensionID string, key string, value string) int
+		SetTrackerFavourite        func(childComplexity int, trackerKey string, remoteID string, favourite bool) int
 		StartDownloader            func(childComplexity int) int
 		StartLibraryUpdate         func(childComplexity int, folderID *string, trigger *model.LibraryUpdateTrigger) int
 		StopDownloader             func(childComplexity int) int
@@ -426,6 +427,7 @@ type ComplexityRoot struct {
 		SourcePreferences        func(childComplexity int, extensionID string) int
 		StorageInfo              func(childComplexity int) int
 		TrackSearch              func(childComplexity int, trackerKey string, query string, contentType *model.ContentType) int
+		TrackerFavourites        func(childComplexity int, trackerKey string, contentType model.ContentType) int
 		TrackerLibrary           func(childComplexity int, trackerKey string, contentType model.ContentType, statuses []string) int
 		Trackers                 func(childComplexity int) int
 	}
@@ -752,6 +754,7 @@ type MutationResolver interface {
 	BindTrack(ctx context.Context, mediaID string, trackerKey string, remoteID string) (*model.TrackLink, error)
 	CreateTrackerStub(ctx context.Context, trackerKey string, remoteID string, contentType model.ContentType, title string, coverURL *string) (*model.Media, error)
 	UpdateTrack(ctx context.Context, linkID string, status *int32, score *float64, lastChapterRead *float64) (*model.TrackLink, error)
+	SetTrackerFavourite(ctx context.Context, trackerKey string, remoteID string, favourite bool) (bool, error)
 	UnbindTrack(ctx context.Context, linkID string) (bool, error)
 	ResyncTrack(ctx context.Context, linkID string) (*model.TrackLink, error)
 	PullTracker(ctx context.Context, mediaID string) ([]*model.TrackLink, error)
@@ -799,6 +802,7 @@ type QueryResolver interface {
 	Trackers(ctx context.Context) ([]*model.Tracker, error)
 	TrackSearch(ctx context.Context, trackerKey string, query string, contentType *model.ContentType) ([]*model.TrackSearchResult, error)
 	TrackerLibrary(ctx context.Context, trackerKey string, contentType model.ContentType, statuses []string) ([]*model.TrackerLibraryEntry, error)
+	TrackerFavourites(ctx context.Context, trackerKey string, contentType model.ContentType) ([]string, error)
 	SearchMetadata(ctx context.Context, query string, contentType model.ContentType, provider *string) ([]*model.MetadataCandidate, error)
 	SkipTimestamps(ctx context.Context, chapterID string, episodeLengthMs *int32) ([]*model.SkipMarker, error)
 }
@@ -2564,6 +2568,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SetSourcePreference(childComplexity, args["extensionId"].(string), args["key"].(string), args["value"].(string)), true
+	case "Mutation.setTrackerFavourite":
+		if e.ComplexityRoot.Mutation.SetTrackerFavourite == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setTrackerFavourite_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SetTrackerFavourite(childComplexity, args["trackerKey"].(string), args["remoteId"].(string), args["favourite"].(bool)), true
 	case "Mutation.startDownloader":
 		if e.ComplexityRoot.Mutation.StartDownloader == nil {
 			break
@@ -3098,6 +3113,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.TrackSearch(childComplexity, args["trackerKey"].(string), args["query"].(string), args["contentType"].(*model.ContentType)), true
+	case "Query.trackerFavourites":
+		if e.ComplexityRoot.Query.TrackerFavourites == nil {
+			break
+		}
+
+		args, err := ec.field_Query_trackerFavourites_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.TrackerFavourites(childComplexity, args["trackerKey"].(string), args["contentType"].(model.ContentType)), true
 	case "Query.trackerLibrary":
 		if e.ComplexityRoot.Query.TrackerLibrary == nil {
 			break
@@ -6049,6 +6075,36 @@ func (ec *executionContext) field_Mutation_setSourcePreference_args(ctx context.
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_setTrackerFavourite_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "trackerKey",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["trackerKey"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "remoteId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["remoteId"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "favourite",
+		func(ctx context.Context, v any) (bool, error) {
+			return ec.unmarshalNBoolean2bool(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["favourite"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_startLibraryUpdate_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6896,6 +6952,28 @@ func (ec *executionContext) field_Query_trackSearch_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["contentType"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_trackerFavourites_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "trackerKey",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["trackerKey"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "contentType",
+		func(ctx context.Context, v any) (model.ContentType, error) {
+			return ec.unmarshalNContentType2tsunaguᚋbackendᚋinternalᚋapiᚋgraphᚋmodelᚐContentType(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["contentType"] = arg1
 	return args, nil
 }
 
@@ -14283,6 +14361,50 @@ func (ec *executionContext) fieldContext_Mutation_updateTrack(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_setTrackerFavourite(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_setTrackerFavourite(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SetTrackerFavourite(ctx, fc.Args["trackerKey"].(string), fc.Args["remoteId"].(string), fc.Args["favourite"].(bool))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_setTrackerFavourite(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setTrackerFavourite_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_unbindTrack(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -16065,6 +16187,50 @@ func (ec *executionContext) fieldContext_Query_trackerLibrary(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_trackerLibrary_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_trackerFavourites(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_trackerFavourites(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().TrackerFavourites(ctx, fc.Args["trackerKey"].(string), fc.Args["contentType"].(model.ContentType))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalNString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_trackerFavourites(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_trackerFavourites_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -24321,6 +24487,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "setTrackerFavourite":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setTrackerFavourite(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "unbindTrack":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_unbindTrack(ctx, field)
@@ -25250,6 +25423,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_trackerLibrary(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "trackerFavourites":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_trackerFavourites(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

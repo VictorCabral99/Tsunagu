@@ -510,6 +510,9 @@ type Query {
 
   trackerLibrary(trackerKey: String!, contentType: ContentType!, statuses: [String!]): [TrackerLibraryEntry!]!
 
+  """Remote ids of the user's favourites; fails for trackers without favourites (MAL)."""
+  trackerFavourites(trackerKey: String!, contentType: ContentType!): [String!]!
+
   searchMetadata(query: String!, contentType: ContentType!, provider: String): [MetadataCandidate!]!
 
   skipTimestamps(chapterId: ID!, episodeLengthMs: Int): [SkipMarker!]!
@@ -614,6 +617,8 @@ type Mutation {
   createTrackerStub(trackerKey: String!, remoteId: String!, contentType: ContentType!, title: String!, coverUrl: String): Media!
 
   updateTrack(linkId: ID!, status: Int, score: Float, lastChapterRead: Float): TrackLink!
+
+  setTrackerFavourite(trackerKey: String!, remoteId: String!, favourite: Boolean!): Boolean!
   unbindTrack(linkId: ID!): Boolean!
 
   resyncTrack(linkId: ID!): TrackLink!

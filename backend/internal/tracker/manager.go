@@ -155,6 +155,31 @@ func (m *Manager) ListLibrary(ctx context.Context, key, contentType string, stat
 	return res, m.checkReauth(ctx, acct, err)
 }
 
+func (m *Manager) Favourites(ctx context.Context, key, contentType string) ([]string, error) {
+	acct, svc, auth, err := m.load(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	fav, ok := svc.(Favouriter)
+	if !ok {
+		return nil, ErrNoFavourites
+	}
+	res, err := fav.Favourites(ctx, auth, contentType)
+	return res, m.checkReauth(ctx, acct, err)
+}
+
+func (m *Manager) SetFavourite(ctx context.Context, key, remoteID string, favourite bool) error {
+	acct, svc, auth, err := m.load(ctx, key)
+	if err != nil {
+		return err
+	}
+	fav, ok := svc.(Favouriter)
+	if !ok {
+		return ErrNoFavourites
+	}
+	return m.checkReauth(ctx, acct, fav.SetFavourite(ctx, auth, remoteID, favourite))
+}
+
 func (m *Manager) Bind(ctx context.Context, key string, mediaID int64, remoteID string) (sqlcgen.TrackerLink, error) {
 	acct, svc, auth, err := m.load(ctx, key)
 	if err != nil {

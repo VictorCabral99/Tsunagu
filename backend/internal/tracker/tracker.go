@@ -127,6 +127,15 @@ type Service interface {
 	ScoreOptions(a Auth) []string
 }
 
+// Favouriter is implemented by trackers that keep a favourites list
+// (AniList; MAL's API has no favourites).
+type Favouriter interface {
+	Favourites(ctx context.Context, a Auth, contentType string) ([]string, error)
+	SetFavourite(ctx context.Context, a Auth, remoteID string, favourite bool) error
+}
+
+var ErrNoFavourites = errors.New("tracker: favourites are not supported")
+
 type CallbackAuther interface {
 	CompleteAuth(ctx context.Context, q url.Values) (Auth, error)
 }

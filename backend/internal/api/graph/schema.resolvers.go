@@ -1410,6 +1410,14 @@ func (r *mutationResolver) UpdateTrack(ctx context.Context, linkID string, statu
 	return toTrackLink(link, r.Tk.KeyForAccountID(ctx, link.TrackerAccountID)), nil
 }
 
+func (r *mutationResolver) SetTrackerFavourite(ctx context.Context, trackerKey string, remoteID string, favourite bool) (bool, error) {
+	key := strings.ToLower(strings.TrimSpace(trackerKey))
+	if err := r.Tk.SetFavourite(ctx, key, strings.TrimSpace(remoteID), favourite); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *mutationResolver) UnbindTrack(ctx context.Context, linkID string) (bool, error) {
 	lid, err := parseID(linkID)
 	if err != nil {
@@ -2227,6 +2235,10 @@ func (r *queryResolver) TrackerLibrary(ctx context.Context, trackerKey string, c
 		out = append(out, toTrackerLibraryEntry(e))
 	}
 	return out, nil
+}
+
+func (r *queryResolver) TrackerFavourites(ctx context.Context, trackerKey string, contentType model.ContentType) ([]string, error) {
+	return r.Tk.Favourites(ctx, strings.ToLower(strings.TrimSpace(trackerKey)), contentTypeToString(&contentType))
 }
 
 func (r *queryResolver) SearchMetadata(ctx context.Context, query string, contentType model.ContentType, provider *string) ([]*model.MetadataCandidate, error) {

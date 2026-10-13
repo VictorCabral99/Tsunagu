@@ -443,8 +443,84 @@ func (m *MAL) ScoreOptions(a Auth) []string {
 	return out
 }
 
+type malListPage struct {
+	Data []struct {
+		Node       malListNode `json:"node"`
+		ListStatus struct {
+			Status          string  `json:"status"`
+			Score           float64 `json:"score"`
+			NumEpWatched    float64 `json:"num_episodes_watched"`
+			NumChaptersRead float64 `json:"num_chapters_read"`
+			IsRereading     bool    `json:"is_rereading"`
+		} `json:"list_status"`
+	} `json:"data"`
+	Paging struct {
+		Next string `json:"next"`
+	} `json:"paging"`
+}
+
+type malListNode struct {
+	malNode
+	AltTitles struct {
+		En string `json:"en"`
+	} `json:"alternative_titles"`
+}
+
+// ListLibrary pages through the user's list. Status is MAL's own value
+// ("watching", "on_hold", ...), or "rewatching"/"rereading" for repeats.
 func (m *MAL) ListLibrary(ctx context.Context, a Auth, contentType string, statuses []string) ([]LibraryEntry, error) {
-	return nil, fmt.Errorf("library list not implemented for MyAnimeList yet")
+	kind, count := "manga", "num_chapters"
+	if strings.EqualFold(contentType, "anime") {
+		kind, count = "anime", "num_episodes"
+	}
+	want := map[string]bool{}
+	for _, s := range statuses {
+		if s = strings.ToLower(strings.TrimSpace(s)); s != "" {
+			want[s] = true
+		}
+	}
+	next := fmt.Sprintf("/users/@me/%slist?fields=list_status,alternative_titles,main_picture,media_type,%s&limit=500&nsfw=true", kind, count)
+	var entries []LibraryEntry
+	for page := 0; next != "" && page < 40; page++ {
+		var out malListPage
+		if err := m.get(ctx, a.AccessToken, next, &out); err != nil {
+			return nil, err
+		}
+		for _, d := range out.Data {
+			n, ls := d.Node, d.ListStatus
+			if kind == "manga" && strings.EqualFold(contentType, "novel") != strings.Contains(n.MediaType, "novel") {
+				continue
+			}
+			status, progress, total := ls.Status, ls.NumChaptersRead, n.NumChapters
+			if kind == "anime" {
+				progress, total = ls.NumEpWatched, n.NumEpisodes
+			}
+			if ls.IsRereading {
+				status = map[string]string{"anime": "rewatching", "manga": "rereading"}[kind]
+			}
+			if len(want) > 0 && !want[status] {
+				continue
+			}
+			entries = append(entries, LibraryEntry{
+				RemoteID:      malJoinID(kind, strconv.Itoa(n.ID)),
+				Title:         n.Title,
+				TitleRomaji:   n.Title,
+				TitleEnglish:  n.AltTitles.En,
+				Status:        status,
+				Progress:      progress,
+				Score:         ls.Score,
+				CoverURL:      firstNonEmpty(n.MainPic.Large, n.MainPic.Medium),
+				MediaType:     strings.ToUpper(kind),
+				URL:           fmt.Sprintf("https://myanimelist.net/%s/%d", kind, n.ID),
+				TotalChapters: total,
+			})
+		}
+		next = strings.TrimPrefix(out.Paging.Next, malAPI)
+		if next == out.Paging.Next {
+			next = ""
+		}
+	}
+	return entries, nil
 }
 
 func malStatusToCanonical(s string, rereading bool) Status {

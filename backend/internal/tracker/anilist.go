@@ -548,6 +548,69 @@ func (a *AniList) Push(ctx context.Context, auth Auth, t Track) (Track, error) {
 	return t, nil
 }
 
+// Favourites lists the ids of the viewer's favourite anime (or manga).
+func (a *AniList) Favourites(ctx context.Context, auth Auth, contentType string) ([]string, error) {
+	field := "manga"
+	if strings.EqualFold(contentType, "anime") {
+		field = "anime"
+	}
+	doc := fmt.Sprintf(`query($page: Int) { Viewer { favourites { %s(page: $page, perPage: 50) { pageInfo { hasNextPage } nodes { id } } } } }`, field)
+	var ids []string
+	for page := 1; page <= 40; page++ {
+		var out struct {
+			Viewer struct {
+				Favourites map[string]struct {
+					PageInfo struct {
+						HasNextPage bool `json:"hasNextPage"`
+					} `json:"pageInfo"`
+					Nodes []struct {
+						ID int `json:"id"`
+					} `json:"nodes"`
+				} `json:"favourites"`
+			} `json:"Viewer"`
+		}
+		if err := a.query(ctx, auth.AccessToken, doc, map[string]any{"page": page}, &out); err != nil {
+			return nil, err
+		}
+		list := out.Viewer.Favourites[field]
+		for _, n := range list.Nodes {
+			ids = append(ids, strconv.Itoa(n.ID))
+		}
+		if !list.PageInfo.HasNextPage {
+			break
+		}
+	}
+	return ids, nil
+}
+
+// SetFavourite only toggles when the current state differs: AniList has no
+// "set" mutation, and toggling blindly would undo a favourite made elsewhere.
+func (a *AniList) SetFavourite(ctx context.Context, auth Auth, remoteID string, favourite bool) error {
+	id, err := strconv.Atoi(remoteID)
+	if err != nil {
+		return fmt.Errorf("bad anilist media id %q", remoteID)
+	}
+	var cur struct {
+		Media struct {
+			Type        string `json:"type"`
+			IsFavourite bool   `json:"isFavourite"`
+		} `json:"Media"`
+	}
+	if err := a.query(ctx, auth.AccessToken, `query($id: Int) { Media(id: $id) { type isFavourite } }`, map[string]any{"id": id}, &cur); err != nil {
+		return err
+	}
+	if cur.Media.IsFavourite == favourite {
+		return nil
+	}
+	arg := "mangaId"
+	if cur.Media.Type == "ANIME" {
+		arg = "animeId"
+	}
+	doc := fmt.Sprintf(`mutation($id: Int) { ToggleFavourite(%s: $id) { __typename } }`, arg)
+	var ignored struct{}
+	return a.query(ctx, auth.AccessToken, doc, map[string]any{"id": id}, &ignored)
+}
+
 func (a *AniList) ScoreOptions(auth Auth) []string {
 	switch auth.ScoreFormat {
 	case "POINT_100":
