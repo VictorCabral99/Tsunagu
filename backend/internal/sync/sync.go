@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -263,6 +264,10 @@ func (s *Syncer) applyRepoIndex(ctx context.Context, repoID int64, parsed []repo
 			JarUrl:       nullString(ext.JarURL),
 			IsNsfw:       ext.IsNsfw,
 		}); err != nil {
+			// The package is already tracked under another repository; leave that row alone.
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
 			return fmt.Errorf("upsert extension %s: %w", ext.PackageName, err)
 		}
 	}
@@ -371,6 +376,9 @@ func (s *Syncer) InstallExternalExtension(ctx context.Context, c *sandbox.Client
 		ContentType: contentType,
 		Lang:        strings.ToLower(strings.TrimSpace(meta.Lang)),
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		saved, err = s.q.GetExtensionByPackageName(ctx, meta.PackageName)
+	}
 	if err != nil {
 		return sqlcgen.Extension{}, fmt.Errorf("upsert extension: %w", err)
 	}

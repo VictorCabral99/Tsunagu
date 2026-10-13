@@ -743,6 +743,7 @@ ON CONFLICT(package_name) DO UPDATE SET
     apk_url = excluded.apk_url,
     jar_url = excluded.jar_url,
     is_nsfw = excluded.is_nsfw
+WHERE extensions.repository_id = excluded.repository_id
 RETURNING id, repository_id, package_name, name, version, content_type, lang, icon_url, icon_local_path, apk_url, jar_url, jar_path, installed, enabled, discovered_at, installed_at, installed_version, needs_update, is_nsfw, supports_latest, source_id
 `
 

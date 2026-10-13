@@ -12,6 +12,7 @@ ON CONFLICT(package_name) DO UPDATE SET
     apk_url = excluded.apk_url,
     jar_url = excluded.jar_url,
     is_nsfw = excluded.is_nsfw
+WHERE extensions.repository_id = excluded.repository_id
 RETURNING *;
 
 -- name: GetExtension :one
