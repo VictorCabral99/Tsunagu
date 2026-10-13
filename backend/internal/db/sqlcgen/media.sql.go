@@ -688,7 +688,7 @@ func (q *Queries) UpdateMediaCoverLocalPath(ctx context.Context, arg UpdateMedia
 const updateSourcelessMedia = `-- name: UpdateSourcelessMedia :one
 UPDATE media SET
     title = ?,
-    cover_path = COALESCE(?3, cover_path)
+    cover_path = COALESCE(?, cover_path)
 WHERE id = ?
 RETURNING id, extension_id, extension_name, external_id, content_type, title, cover_path, cover_local_path, description, status, author, artist, extension_removed_at, added_at, last_viewed_at, details_fetched_at, updated_at, chapters_synced_at, cover_override, content_block_rank, metadata_search_failed_at, chapters_checked_at
 `
