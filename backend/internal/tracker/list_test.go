@@ -35,7 +35,7 @@ func TestMALListLibraryPages(t *testing.T) {
 				{"node":{"id":52991,"title":"Sousou no Frieren","num_episodes":28,"main_picture":{"large":"https://cdn/f.jpg"},"alternative_titles":{"en":"Frieren: Beyond Journey's End"}},
 				 "list_status":{"status":"completed","score":10,"num_episodes_watched":28}},
 				{"node":{"id":1,"title":"Cowboy Bebop","num_episodes":26},
-				 "list_status":{"status":"watching","score":0,"num_episodes_watched":5,"is_rereading":true}}
+				 "list_status":{"status":"watching","score":0,"num_episodes_watched":5,"is_rewatching":true}}
 			],"paging":{"next":"%s/users/@me/animelist?offset=500&limit=500"}}`, malAPI)
 			return
 		}

@@ -310,6 +310,7 @@ type malNode struct {
 		NumChaptersRead float64 `json:"num_chapters_read"`
 		NumEpWatched    float64 `json:"num_episodes_watched"`
 		IsRereading     bool    `json:"is_rereading"`
+		IsRewatching    bool    `json:"is_rewatching"`
 		StartDate       string  `json:"start_date"`
 		FinishDate      string  `json:"finish_date"`
 	} `json:"my_list_status"`
@@ -371,7 +372,7 @@ func (m *MAL) Search(ctx context.Context, a Auth, q, contentType string) ([]Sear
 func (m *MAL) node(ctx context.Context, token, kind, id string) (malNode, error) {
 	fields := "id,title,num_chapters,status,my_list_status{status,score,num_chapters_read,is_rereading,start_date,finish_date}"
 	if kind == "anime" {
-		fields = "id,title,num_episodes,status,my_list_status{status,score,num_episodes_watched,is_rereading,start_date,finish_date}"
+		fields = "id,title,num_episodes,status,my_list_status{status,score,num_episodes_watched,is_rewatching,start_date,finish_date}"
 	}
 	var n malNode
 	err := m.get(ctx, token, fmt.Sprintf("/%s/%s?fields=%s", kind, id, fields), &n)
@@ -396,7 +397,7 @@ func (m *MAL) trackFromNode(kind, id string, n malNode) Track {
 		} else {
 			t.LastChapterRead = s.NumChaptersRead
 		}
-		t.Status = malStatusToCanonical(s.Status, s.IsRereading)
+		t.Status = malStatusToCanonical(s.Status, s.IsRereading || s.IsRewatching)
 		t.StartedAt = parseMALDate(s.StartDate)
 		t.FinishedAt = parseMALDate(s.FinishDate)
 	}
@@ -426,9 +427,11 @@ func (m *MAL) Push(ctx context.Context, a Auth, t Track) (Track, error) {
 	} else {
 		form.Set("num_chapters_read", strconv.Itoa(int(t.LastChapterRead+0.5)))
 	}
-	if t.Status == StatusRereading {
-		form.Set("is_rereading", "true")
+	rereadKey := "is_rereading"
+	if kind == "anime" {
+		rereadKey = "is_rewatching"
 	}
+	form.Set(rereadKey, strconv.FormatBool(t.Status == StatusRereading))
 	if err := m.patch(ctx, a.AccessToken, fmt.Sprintf("/%s/%s/my_list_status", kind, id), form, nil); err != nil {
 		return Track{}, err
 	}
@@ -452,6 +455,7 @@ type malListPage struct {
 			NumEpWatched    float64 `json:"num_episodes_watched"`
 			NumChaptersRead float64 `json:"num_chapters_read"`
 			IsRereading     bool    `json:"is_rereading"`
+			IsRewatching    bool    `json:"is_rewatching"`
 		} `json:"list_status"`
 	} `json:"data"`
 	Paging struct {
@@ -495,7 +499,7 @@ func (m *MAL) ListLibrary(ctx context.Context, a Auth, contentType string, statu
 			if kind == "anime" {
 				progress, total = ls.NumEpWatched, n.NumEpisodes
 			}
-			if ls.IsRereading {
+			if ls.IsRereading || ls.IsRewatching {
 				status = map[string]string{"anime": "rewatching", "manga": "rereading"}[kind]
 			}
 			if len(want) > 0 && !want[status] {
